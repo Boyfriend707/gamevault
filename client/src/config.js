@@ -42,4 +42,10 @@ const config = {
   get SERVER_URL() { return cachedUrl.replace("/api", ""); },
 };
 
+export function resolveAssetUrl(url) {
+  if (!url) return null;
+  if (url.startsWith("http")) return url;
+  return `${config.SERVER_URL}${url}`;
+}
+
 export default config;

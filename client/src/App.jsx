@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
 import { auth } from "./api";
-import config from "./config";
+import config, { resolveAssetUrl } from "./config";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -93,12 +93,13 @@ function App() {
     return <Login onLogin={handleLogin} />;
   }
 
-  const bgClass = bgValue.startsWith("/uploads") ? "bg-custom" : bgValue ? `bg-${bgValue}` : "";
+  const isCustomBg = bgValue && (bgValue.startsWith("/uploads") || bgValue.startsWith("http"));
+  const bgClass = isCustomBg ? "bg-custom" : bgValue ? `bg-${bgValue}` : "";
 
   return (
     <ToastProvider>
     <div className="app">
-      {bgClass && <div className={`page-bg ${bgClass}`} style={bgValue.startsWith("/uploads") ? { backgroundImage: `url(${config.SERVER_URL}${bgValue})` } : {}} />}
+      {bgClass && <div className={`page-bg ${bgClass}`} style={isCustomBg ? { backgroundImage: `url(${resolveAssetUrl(bgValue)})` } : {}} />}
       <Navbar user={user} onLogout={handleLogout} />
       <main className="main-content">
         <Routes>

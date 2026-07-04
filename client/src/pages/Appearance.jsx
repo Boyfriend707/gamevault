@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { Moon, Sun, Camera, Sparkles, Check, Lock, X, Crown, Image } from "lucide-react";
 import { settings, auth, decorations as decorationsApi } from "../api";
-import config from "../config";
+import config, { resolveAssetUrl } from "../config";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import BannerCropModal from "../components/BannerCropModal";
 
@@ -313,7 +313,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
             </div>
             <div style={{ marginTop: "0.5rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
               {user?.bannerUrl && (
-                <img src={`${config.SERVER_URL}${user.bannerUrl}`} alt="Banner preview"
+                <img src={resolveAssetUrl(user.bannerUrl)} alt="Banner preview"
                   style={{ width: 200, height: 64, objectFit: "cover", borderRadius: "var(--radius-sm)", border: "1px solid var(--border)" }} />
               )}
               <label className="btn btn-secondary">

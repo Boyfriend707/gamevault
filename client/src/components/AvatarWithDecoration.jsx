@@ -1,12 +1,8 @@
-import config from "../config";
+import { resolveAssetUrl } from "../config";
 
 function AvatarWithDecoration({ user, size = 32, className = "" }) {
-  const avatarUrl = user?.avatarUrl ? `${config.SERVER_URL}${user.avatarUrl}` : null;
-  const decorationUrl = user?.decorationUrl
-    ? user.decorationUrl.startsWith("http")
-      ? user.decorationUrl
-      : `${config.SERVER_URL}${user.decorationUrl}`
-    : null;
+  const avatarUrl = resolveAssetUrl(user?.avatarUrl);
+  const decorationUrl = resolveAssetUrl(user?.decorationUrl);
 
   return (
     <div className={`avatar-deco-wrapper ${className}`} style={{ width: size, height: size }}>

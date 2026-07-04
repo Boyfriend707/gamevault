@@ -4,7 +4,7 @@ import { ArrowLeft, Gamepad2, PlayCircle, CheckCircle2, Clock, Timer, Trophy, Pe
 import { users as usersApi, settings as settingsApi, chats as chatsApi } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
-import config from "../config";
+import config, { resolveAssetUrl } from "../config";
 
 function calcLevel(xp) { return Math.floor(Math.pow(xp / 100, 0.6)); }
 
@@ -76,7 +76,7 @@ function Profile({ user: currentUser }) {
                   <div style={{
                     width: "100%", height: "100%", overflow: "hidden", position: "relative",
                   }}>
-                    <img src={`${config.SERVER_URL}${profile.bannerUrl}`} alt=""
+                    <img src={resolveAssetUrl(profile.bannerUrl)} alt=""
                       style={{
                         position: "absolute",
                         width: `${100 / c.width}%`,
@@ -89,7 +89,7 @@ function Profile({ user: currentUser }) {
                 );
               })()
             ) : (
-              <img src={`${config.SERVER_URL}${profile.bannerUrl}`} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={resolveAssetUrl(profile.bannerUrl)} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             )}
           </div>
         )}

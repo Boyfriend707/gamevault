@@ -7,7 +7,7 @@
     "dev": "node --watch src/index.js",
     "start": "node src/index.js",
     "start:prod": "cross-env NODE_ENV=production node src/index.js",
-    "build:client": "cd ../client && npm run build",
+    "build:client": "cd ../client && npm install --include=dev && npm run build",
     "db:push": "npx prisma db push",
     "db:studio": "npx prisma studio",
     "db:generate": "npx prisma generate",
