@@ -45,7 +45,7 @@ const upload = multer({
   },
 });
 
-function uploadToCloudinary(buffer, publicId, opts = {}) {
+export function uploadToCloudinary(buffer, publicId, opts = {}) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
       { public_id: publicId, resource_type: "image", ...opts },
