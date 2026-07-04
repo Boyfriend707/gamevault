@@ -555,9 +555,12 @@ function Collection() {
                     input.onchange = async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = (ev) => setForm({ ...form, coverUrl: ev.target.result });
-                      reader.readAsDataURL(file);
+                      try {
+                        const result = await games.uploadCover(file);
+                        setForm({ ...form, coverUrl: result.coverUrl });
+                      } catch (err) {
+                        alert("Failed to upload cover: " + err.message);
+                      }
                     };
                     input.click();
                   }}>

@@ -106,6 +106,16 @@ app.post("/api/banner", authenticateToken, upload.single("banner"), async (req, 
   }
 });
 
+app.post("/api/games/cover", authenticateToken, upload.single("cover"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+    const url = await uploadToCloudinary(req.file.buffer, `cover-${req.userId}-${Date.now()}`);
+    res.json({ coverUrl: url });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to upload cover" });
+  }
+});
+
 app.post("/api/background", authenticateToken, upload.single("background"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });

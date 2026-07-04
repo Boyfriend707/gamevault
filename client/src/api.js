@@ -125,6 +125,16 @@ export const games = {
   pinned: () => request("/games/pinned"),
   togglePin: (id) =>
     request(`/games/${id}/pin`, { method: "PUT" }),
+  uploadCover: (file) => {
+    const formData = new FormData();
+    formData.append("cover", file);
+    const token = localStorage.getItem("token");
+    return request("/games/cover", {
+      method: "POST",
+      body: formData,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
+  },
 };
 
 export const steam = {
