@@ -16,10 +16,14 @@ contextBridge.exposeInMainWorld("electronAPI", {
   launchSteamGame: (steamAppId) => ipcRenderer.invoke("launch-steam-game", steamAppId),
   stopTracking: (gameId) => ipcRenderer.invoke("stop-tracking", gameId),
   onGameTimeElapsed: (callback) => {
-    ipcRenderer.on("game-time-elapsed", (_, data) => callback(data));
+    const handler = (_, data) => callback(data);
+    ipcRenderer.on("game-time-elapsed", handler);
+    return () => ipcRenderer.removeListener("game-time-elapsed", handler);
   },
   onTrackingStarted: (callback) => {
-    ipcRenderer.on("tracking-started", (_, gameId) => callback(gameId));
+    const handler = (_, gameId) => callback(gameId);
+    ipcRenderer.on("tracking-started", handler);
+    return () => ipcRenderer.removeListener("tracking-started", handler);
   },
   scanForGames: (dirPath) => ipcRenderer.invoke("scan-for-games", dirPath),
   pickDirectory: () => ipcRenderer.invoke("pick-directory"),
