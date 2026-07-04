@@ -36,26 +36,34 @@ function App() {
       setBgValue(bg);
     }
 
-    const token = localStorage.getItem("token");
-    if (token) {
-      const retry = (attempts = 0) => {
-        auth.me()
-          .then((u) => { setUser(u); setLoading(false); })
-          .catch((err) => {
+    (async () => {
+      let token = localStorage.getItem("token");
+      if (!token && window.electronAPI?.loadToken) {
+        token = await window.electronAPI.loadToken();
+        if (token) localStorage.setItem("token", token);
+      }
+      if (token) {
+        for (let i = 0; i < 60; i++) {
+          try {
+            const u = await auth.me();
+            setUser(u);
+            setLoading(false);
+            return;
+          } catch (err) {
             if (err.status === 401) {
               localStorage.removeItem("token");
+              if (window.electronAPI?.clearToken) await window.electronAPI.clearToken();
               setLoading(false);
-            } else if (attempts < 8) {
-              setTimeout(() => retry(attempts + 1), (attempts + 1) * 2000);
-            } else {
-              setLoading(false);
+              return;
             }
-          });
-      };
-      retry();
-    } else {
-      setLoading(false);
-    }
+            await new Promise((r) => setTimeout(r, Math.min(2000 * (i + 1), 15000)));
+          }
+        }
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   useEffect(() => {
@@ -69,14 +77,16 @@ function App() {
     }
   }, [loading, user]);
 
-  const handleLogin = (token, userData) => {
+  const handleLogin = async (token, userData) => {
     localStorage.setItem("token", token);
+    if (window.electronAPI?.saveToken) await window.electronAPI.saveToken(token);
     setUser(userData);
     navigate("/");
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    if (window.electronAPI?.clearToken) window.electronAPI.clearToken();
     setUser(null);
     navigate("/login");
   };

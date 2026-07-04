@@ -297,6 +297,20 @@ ipcMain.handle("pick-directory", async () => {
   return result.filePaths[0];
 });
 
+const tokenPath = path.join(app.getPath("userData"), "auth-token.json");
+ipcMain.handle("save-token", async (_, token) => {
+  fs.writeFileSync(tokenPath, JSON.stringify({ token }), "utf-8");
+});
+ipcMain.handle("load-token", async () => {
+  try {
+    const data = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
+    return data.token || null;
+  } catch { return null; }
+});
+ipcMain.handle("clear-token", async () => {
+  try { fs.unlinkSync(tokenPath); } catch {}
+});
+
 app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
