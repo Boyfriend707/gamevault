@@ -30,7 +30,9 @@ async function request(endpoint, options = {}) {
       entry.error = data.error || "Request failed";
       log.push(entry);
       if (log.length > 50) log.shift();
-      throw new Error(entry.error);
+      const err = new Error(entry.error);
+      err.status = res.status;
+      throw err;
     }
 
     entry.data = data;

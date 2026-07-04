@@ -41,7 +41,7 @@ function App() {
       auth
         .me()
         .then((u) => setUser(u))
-        .catch(() => localStorage.removeItem("token"))
+        .catch((err) => { if (err.status === 401) localStorage.removeItem("token"); })
         .finally(() => setLoading(false));
     } else {
       setLoading(false);
