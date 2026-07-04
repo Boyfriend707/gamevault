@@ -1,5 +1,5 @@
 {
-    "installer":  "GameVault Setup 1.2.0.exe",
-    "version":  "1.2.0",
-    "notes":  "Chat: images, reactions, edit/delete, typing, search, replies -- Profile: badges, friend count, mutuals, drag-reorder, theme -- Appearance: fonts, density, reduced motion, video bg, card colors -- Daily Challenges"
+    "installer":  "GameVault Setup 1.2.1.exe",
+    "version":  "1.2.1",
+    "notes":  "Fix auto-update showing same version as available"
 }

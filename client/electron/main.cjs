@@ -55,8 +55,8 @@ function checkForUpdates(serverUrl) {
       res.on("end", () => {
         try {
           updateInfo = JSON.parse(data);
-          const current = app.getVersion();
-          const latest = updateInfo.version;
+          const current = app.getVersion().trim();
+          const latest = (updateInfo.version || "").trim();
           if (latest && latest !== current) {
             resolve({ available: true, version: latest, notes: updateInfo.notes, downloadUrl: `${serverUrl}${updateInfo.downloadUrl}` });
           } else {

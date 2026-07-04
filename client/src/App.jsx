@@ -79,7 +79,7 @@ function App() {
     if (!loading && user && window.electronAPI?.isElectron) {
       const snoozed = localStorage.getItem("update-snoozed");
       window.electronAPI.checkUpdate(config.SERVER_URL).then((result) => {
-        if (result.available && result.version !== snoozed) {
+        if (result.available && result.version !== snoozed && result.version !== __APP_VERSION__) {
           setUpdateInfo(result);
         }
       }).catch(() => {});
