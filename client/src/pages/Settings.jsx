@@ -321,7 +321,7 @@ const [editingDecoName, setEditingDecoName] = useState("");
                       setTimeout(() => setTapCount(0), 3000);
                     }}
                   >
-                    GameVault v1.0.0
+                    GameVault v{__APP_VERSION__}
                   </span>
                   <span className="setting-desc">Check if a newer version is available</span>
                 </div>
