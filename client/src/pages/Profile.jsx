@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Gamepad2, PlayCircle, CheckCircle2, Clock, Timer, Trophy, Pencil, Check, X, MessageSquare, Pin, Zap, CheckSquare } from "lucide-react";
-import { users as usersApi, settings as settingsApi, chats as chatsApi, games as gamesApi } from "../api";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { ArrowLeft, Gamepad2, PlayCircle, CheckCircle2, Clock, Timer, Trophy, Pencil, Check, X, MessageSquare, Pin, Zap, CheckSquare, GripVertical, Shield, Medal, Star, Users } from "lucide-react";
+import { friends, games as gamesApi, chats as chatsApi, users as usersApi, settings as settingsApi } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
 import config, { resolveAssetUrl } from "../config";
@@ -18,6 +18,8 @@ function Profile({ user: currentUser }) {
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [displayNameText, setDisplayNameText] = useState("");
   const [milestones, setMilestones] = useState([]);
+  const [orderedPinnedGames, setOrderedPinnedGames] = useState([]);
+  const draggedIndex = useRef(null);
 
   const isOwn = currentUser?.id === parseInt(id);
 
@@ -25,12 +27,29 @@ function Profile({ user: currentUser }) {
     if (id) {
       setLoading(true);
       usersApi.getProfile(id)
-        .then(setProfile)
+        .then((data) => {
+          setProfile(data);
+          setOrderedPinnedGames(data.games.filter((g) => g.pinned));
+        })
         .catch(() => { navigate("/"); })
         .finally(() => setLoading(false));
       usersApi.getMilestones(id).then(setMilestones).catch(console.error);
     }
   }, [id]);
+
+  useEffect(() => {
+    if (profile?.profileTheme) {
+      const prevTheme = document.documentElement.getAttribute("data-theme");
+      document.documentElement.setAttribute("data-theme", profile.profileTheme);
+      return () => {
+        if (prevTheme) {
+          document.documentElement.setAttribute("data-theme", prevTheme);
+        } else {
+          document.documentElement.removeAttribute("data-theme");
+        }
+      };
+    }
+  }, [profile?.profileTheme]);
 
   const saveBio = async () => {
     try {
@@ -61,6 +80,8 @@ function Profile({ user: currentUser }) {
   const accentColor = profile.accentColor || "var(--accent)";
   const pinnedGames = profile.games.filter((g) => g.pinned);
   const otherGames = profile.games.filter((g) => !g.pinned);
+
+  const displayPinnedGames = isOwn ? orderedPinnedGames : pinnedGames;
 
   return (
     <div className="page" style={{ "--profile-accent": accentColor }}>
@@ -158,6 +179,22 @@ function Profile({ user: currentUser }) {
         </div>
       </div>
 
+      {profile.mutualFriends && profile.mutualFriends.length > 0 && (
+        <div className="card">
+          <div className="card-header"><h2><Users size={16} /> Mutual Friends ({profile.mutualFriends.length})</h2></div>
+          <div className="card-body">
+            <div className="mutual-friends-list">
+              {profile.mutualFriends.map((friend) => (
+                <div key={friend.id} className="mutual-friend-row" onClick={() => navigate(`/profile/${friend.id}`)} style={{ cursor: "pointer" }}>
+                  <AvatarWithDecoration user={friend} size={32} />
+                  <span>{friend.displayName || friend.username}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="stat-cards">
         <div className="stat-card"><Trophy size={20} /><span>{profile.stats.total} Games</span></div>
         <div className="stat-card" style={{ "--stat-color": "#22c55e" }}><PlayCircle size={20} /><span>{profile.stats.playing} Playing</span></div>
@@ -167,15 +204,60 @@ function Profile({ user: currentUser }) {
         {profile.xp !== undefined && (
           <div className="stat-card" style={{ "--stat-color": "#a855f7" }}><Zap size={20} /><span>Lv.{calcLevel(profile.xp)} ({profile.xp} XP)</span></div>
         )}
-              </div>
+        {profile.friendCount !== undefined && (
+          <div className="stat-card" style={{ "--stat-color": "#6366f1" }}><Users size={20} /><span>{profile.friendCount} Friends</span></div>
+        )}
+      </div>
+
+      {profile.badges && profile.badges.length > 0 && (
+        <div className="card">
+          <div className="card-header"><h2><Shield size={16} /> Badges ({profile.badges.length})</h2></div>
+          <div className="card-body">
+            <div className="badge-list">
+              {profile.badges.map((badge, index) => (
+                <div key={badge.id || index} className="badge-card">
+                  <span className="badge-icon">{badge.icon || <Medal size={24} />}</span>
+                  <div className="badge-info">
+                    <span className="badge-name">{badge.name}</span>
+                    {badge.description && <span className="badge-description">{badge.description}</span>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {pinnedGames.length > 0 && (
         <div className="card">
           <div className="card-header"><h2><Pin size={16} /> Pinned Games ({pinnedGames.length})</h2></div>
           <div className="card-body">
             <div className="profile-game-list">
-              {pinnedGames.map((g) => (
-                <div key={g.id} className="profile-game-row profile-game-pinned">
+              {displayPinnedGames.map((g, index) => (
+                <div key={g.id} className="profile-game-row profile-game-pinned"
+                  draggable={isOwn}
+                  onDragStart={(e) => {
+                    if (!isOwn) return;
+                    draggedIndex.current = index;
+                    e.dataTransfer.effectAllowed = "move";
+                  }}
+                  onDragOver={(e) => {
+                    if (!isOwn) return;
+                    e.preventDefault();
+                  }}
+                  onDrop={(e) => {
+                    if (!isOwn) return;
+                    e.preventDefault();
+                    const from = draggedIndex.current;
+                    if (from === index || from === null) return;
+                    const reordered = [...orderedPinnedGames];
+                    const [moved] = reordered.splice(from, 1);
+                    reordered.splice(index, 0, moved);
+                    setOrderedPinnedGames(reordered);
+                    gamesApi.setPinOrder(reordered.map((rg) => rg.id)).catch(console.error);
+                  }}
+                >
+                  {isOwn && <span className="profile-game-drag"><GripVertical size={16} /></span>}
                   <div className="profile-game-info">
                     <span className="profile-game-name">{g.name}</span>
                     <span className="profile-game-platform">{g.platform}</span>

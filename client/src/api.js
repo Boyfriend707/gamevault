@@ -139,6 +139,8 @@ export const games = {
     });
   },
   random: () => request("/games/random"),
+  updateCardColor: (id, cardColor) => request(`/games/${id}/card-color`, { method: "PUT", body: JSON.stringify({ cardColor }) }),
+  setPinOrder: (order) => request("/games/pin-order", { method: "PUT", body: JSON.stringify({ order }) }),
   servers: {
     list: (id) => request(`/games/${id}/servers`),
     add: (id, data) => request(`/games/${id}/servers`, { method: "POST", body: JSON.stringify(data) }),
@@ -214,7 +216,17 @@ export const chats = {
   list: () => request("/chats"),
   createOrGet: (userId) => request("/chats", { method: "POST", body: JSON.stringify({ userId }) }),
   getMessages: (convoId, after) => request(`/chats/${convoId}/messages${after ? `?after=${after}` : ""}`),
-  sendMessage: (convoId, content) => request(`/chats/${convoId}/messages`, { method: "POST", body: JSON.stringify({ content }) }),
+  sendMessage: (convoId, content, replyToId) => request(`/chats/${convoId}/messages`, { method: "POST", body: JSON.stringify({ content, replyToId }) }),
+  uploadImage: (convoId, file) => {
+    const formData = new FormData();
+    formData.append("image", file);
+    return request(`/chats/${convoId}/images`, { method: "POST", body: formData, headers: {} });
+  },
+  editMessage: (messageId, content) => request(`/chats/messages/${messageId}`, { method: "PUT", body: JSON.stringify({ content }) }),
+  deleteMessage: (messageId) => request(`/chats/messages/${messageId}`, { method: "DELETE" }),
+  toggleReaction: (messageId, emoji) => request(`/chats/messages/${messageId}/react`, { method: "POST", body: JSON.stringify({ emoji }) }),
+  setTyping: (convoId) => request(`/chats/${convoId}/typing`, { method: "POST" }),
+  search: (convoId, q) => request(`/chats/${convoId}/search?q=${encodeURIComponent(q)}`),
 };
 
 export const notificationsApi = {
@@ -229,6 +241,11 @@ export const challenges = {
   join: (id) => request(`/challenges/${id}/join`, { method: "POST" }),
   get: (id) => request(`/challenges/${id}`),
   check: (id) => request(`/challenges/${id}/check`, { method: "POST" }),
+};
+
+export const dailyChallenges = {
+  check: () => request("/daily-challenges/check", { method: "POST" }),
+  list: () => request("/daily-challenges"),
 };
 
 export const settings = {
@@ -253,4 +270,6 @@ export const settings = {
     request("/settings/accent-color", { method: "PUT", body: JSON.stringify({ accentColor }) }),
   updateBannerCrop: (bannerCrop) =>
     request("/settings/banner-crop", { method: "PUT", body: JSON.stringify({ bannerCrop }) }),
+  updateProfileTheme: (profileTheme) =>
+    request("/settings/profile-theme", { method: "PUT", body: JSON.stringify({ profileTheme }) }),
 };

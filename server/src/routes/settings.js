@@ -24,13 +24,18 @@ router.get("/", async (req, res) => {
 
 router.put("/", async (req, res) => {
   try {
-    const { theme, unlockedThemes, completedGoals, background, shortcuts } = req.body;
+    const { theme, unlockedThemes, completedGoals, background, shortcuts, fontSize, density, reducedMotion, bgType, bgVideo } = req.body;
     const data = {};
     if (theme !== undefined) data.theme = theme;
     if (unlockedThemes !== undefined) data.unlockedThemes = unlockedThemes;
     if (completedGoals !== undefined) data.completedGoals = completedGoals;
     if (background !== undefined) data.background = background;
     if (shortcuts !== undefined) data.shortcuts = shortcuts;
+    if (fontSize !== undefined) data.fontSize = fontSize;
+    if (density !== undefined) data.density = density;
+    if (reducedMotion !== undefined) data.reducedMotion = reducedMotion;
+    if (bgType !== undefined) data.bgType = bgType;
+    if (bgVideo !== undefined) data.bgVideo = bgVideo;
 
     const settings = await prisma.settings.upsert({
       where: { userId: req.userId },
@@ -142,6 +147,19 @@ router.put("/accent-color", async (req, res) => {
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: "Failed to update accent color" });
+  }
+});
+
+router.put("/profile-theme", async (req, res) => {
+  try {
+    const { profileTheme } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: { profileTheme },
+    });
+    res.json({ profileTheme });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update profile theme" });
   }
 });
 

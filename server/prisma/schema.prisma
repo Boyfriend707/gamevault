@@ -21,6 +21,9 @@ model User {
   bannerCrop String?
   role      String   @default("user")
   xp        Int      @default(0)
+  profileTheme String?
+  loginStreak Int      @default(0)
+  lastLoginDate DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -40,12 +43,15 @@ model User {
   gameMilestones   GameMilestone[]
   challengesCreated Challenge[] @relation("ChallengeCreator")
   challengeParticipants ChallengeParticipant[]
+  badges           UserBadge[]
+  dailyProgress    DailyChallengeProgress[]
 }
 
 model Conversation {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  typing    String?
 
   participants ConversationParticipant[]
   messages     Message[]
@@ -63,11 +69,18 @@ model ConversationParticipant {
 model Message {
   id             Int      @id @default(autoincrement())
   content        String
+  imageUrl       String?
+  editedAt       DateTime?
+  deletedAt      DateTime?
+  reactions      String?
+  replyToId      Int?
   createdAt      DateTime @default(now())
   conversationId Int
   userId         Int
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id])
+  replyTo        Message?    @relation("MessageReply", fields: [replyToId], references: [id])
+  replies        Message[]   @relation("MessageReply")
 }
 
 model FriendRequest {
@@ -106,6 +119,8 @@ model Game {
   playtime    Int      @default(0)
   status      String   @default("not-playing")
   pinned      Boolean  @default(false)
+  pinOrder    Int      @default(0)
+  cardColor   String?
   rating      Int?
   review      String?
   createdAt DateTime @default(now())
@@ -164,6 +179,11 @@ model Settings {
   completedGoals  String   @default("[]")
   background      String?
   shortcuts       String   @default("{\"enabled\":true,\"bindings\":{}}")
+  fontSize        String   @default("normal")
+  density         String   @default("normal")
+  reducedMotion   Boolean  @default(false)
+  bgType          String   @default("gradient")
+  bgVideo         String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
@@ -254,4 +274,47 @@ model Decoration {
   name      String   @unique
   fileUrl   String
   createdAt DateTime @default(now())
+}
+
+model Badge {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  iconUrl     String?
+  description String?
+  createdAt   DateTime @default(now())
+  users       UserBadge[]
+}
+
+model UserBadge {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  badgeId   Int
+  awardedAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+  badge     Badge    @relation(fields: [badgeId], references: [id])
+  @@unique([userId, badgeId])
+}
+
+model DailyChallenge {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  type        String
+  requirement Int      @default(1)
+  xpReward    Int      @default(50)
+  date        DateTime
+  createdAt   DateTime @default(now())
+  progress    DailyChallengeProgress[]
+  @@unique([type, date])
+}
+
+model DailyChallengeProgress {
+  id               Int      @id @default(autoincrement())
+  dailyChallengeId Int
+  userId           Int
+  progress         Int      @default(0)
+  completed        Boolean  @default(false)
+  dailyChallenge   DailyChallenge @relation(fields: [dailyChallengeId], references: [id], onDelete: Cascade)
+  user             User           @relation(fields: [userId], references: [id])
+  @@unique([dailyChallengeId, userId])
 }

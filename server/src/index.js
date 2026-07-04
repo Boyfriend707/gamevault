@@ -31,6 +31,7 @@ import usersRoutes from "./routes/users.js";
 import chatsRoutes from "./routes/chats.js";
 import notificationsRoutes from "./routes/notifications.js";
 import challengesRoutes from "./routes/challenges.js";
+import dailyChallengesRoutes from "./routes/dailyChallenges.js";
 import { authenticateToken } from "./middleware/auth.js";
 
 const app = express();
@@ -78,6 +79,7 @@ app.use("/api/users", usersRoutes);
 app.use("/api/chats", chatsRoutes);
 app.use("/api/notifications", notificationsRoutes);
 app.use("/api/challenges", challengesRoutes);
+app.use("/api/daily-challenges", dailyChallengesRoutes);
 app.post("/api/avatar", authenticateToken, upload.single("avatar"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });

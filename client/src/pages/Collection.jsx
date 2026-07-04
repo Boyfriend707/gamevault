@@ -375,8 +375,9 @@ function Collection() {
             const isTracking = tracking === game.id;
             const hours = Math.floor(game.playtime / 60);
             const mins = game.playtime % 60;
+            const cardStyle = game.cardColor ? { borderLeft: `3px solid ${game.cardColor}` } : {};
             return (
-            <div key={game.id} className="game-card" onClick={() => navigate(`/game/${game.id}`)}>
+            <div key={game.id} className="game-card" style={cardStyle} onClick={() => navigate(`/game/${game.id}`)}>
               <div className="game-status-bar" data-status={game.status} />
               {game.coverUrl && <img className="game-cover" src={game.coverUrl} alt="" onError={(e) => { e.target.style.display = "none"; }} />}
               <div className="game-card-content">

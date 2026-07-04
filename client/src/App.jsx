@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
-import { auth } from "./api";
+import { auth, dailyChallenges } from "./api";
 import config, { resolveAssetUrl } from "./config";
 import Navbar from "./components/Navbar";
 import Login from "./pages/Login";
@@ -22,6 +22,8 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [bgValue, setBgValue] = useState(() => localStorage.getItem("bg") || "");
+  const [bgVideo, setBgVideo] = useState(() => localStorage.getItem("bgVideo") || "");
+  const [bgType, setBgType] = useState(() => localStorage.getItem("bgType") || "gradient");
   const [shortcutsEnabled, setShortcutsEnabled] = useState(() => localStorage.getItem("shortcuts") !== "false");
   const navigate = useNavigate();
 
@@ -42,11 +44,18 @@ function App() {
 
       let token = localStorage.getItem("token") || (store ? await store("token") : null);
       if (token) localStorage.setItem("token", token);
-      if (token) {
+          if (token) {
         for (let i = 0; i < 60; i++) {
           try {
             const u = await auth.me();
             setUser(u);
+            dailyChallenges.check().catch(() => {});
+            const fontSize = localStorage.getItem("fontSize");
+            if (fontSize) document.documentElement.style.fontSize = fontSize;
+            const density = localStorage.getItem("density");
+            if (density) document.body.classList.add(`density-${density}`);
+            const reducedMotion = localStorage.getItem("reducedMotion") === "true";
+            if (reducedMotion) document.documentElement.style.scrollBehavior = "auto";
             setLoading(false);
             return;
           } catch (err) {
@@ -114,12 +123,19 @@ function App() {
   }
 
   const isCustomBg = bgValue && (bgValue.startsWith("/uploads") || bgValue.startsWith("http"));
-  const bgClass = isCustomBg ? "bg-custom" : bgValue ? `bg-${bgValue}` : "";
+  const isVideoBg = bgType === "video" && bgVideo;
+  const bgClass = !isVideoBg && bgValue ? (isCustomBg ? "bg-custom" : `bg-${bgValue}`) : "";
 
   return (
     <ToastProvider>
     <div className="app">
-      {bgClass && <div className={`page-bg ${bgClass}`} style={isCustomBg ? { backgroundImage: `url(${resolveAssetUrl(bgValue)})` } : {}} />}
+      {isVideoBg ? (
+        <div className="bg-video">
+          <video src={bgVideo} autoPlay loop muted playsInline />
+        </div>
+      ) : bgClass ? (
+        <div className={`page-bg ${bgClass}`} style={isCustomBg ? { backgroundImage: `url(${resolveAssetUrl(bgValue)})` } : {}} />
+      ) : null}
       <Navbar user={user} onLogout={handleLogout} />
       <main className="main-content">
         <Routes>

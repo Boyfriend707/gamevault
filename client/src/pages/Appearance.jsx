@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Moon, Sun, Camera, Sparkles, Check, Lock, X, Crown, Image } from "lucide-react";
+import { Moon, Sun, Camera, Sparkles, Check, Lock, X, Crown, Image, Type, MousePointer2, Monitor, Eye, Video, Palette } from "lucide-react";
 import { settings, auth, decorations as decorationsApi } from "../api";
 import config, { resolveAssetUrl } from "../config";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
@@ -21,6 +21,20 @@ const ACCENT_COLORS = [
   "#e11d48", "#d946ef", "#0ea5e9", "#34d399", "#84cc16",
 ];
 
+const THEMES = [
+  { id: "light", name: "Light" },
+  { id: "dark", name: "Dark" },
+  { id: "midnight", name: "Midnight" },
+  { id: "forest", name: "Forest" },
+  { id: "nord", name: "Nord" },
+  { id: "sunset", name: "Sunset" },
+  { id: "crimson", name: "Crimson" },
+  { id: "ocean", name: "Ocean" },
+  { id: "cyberpunk", name: "Cyberpunk" },
+  { id: "matrix", name: "Matrix" },
+  { id: "royal", name: "Royal" },
+];
+
 function Appearance({ user, onUserUpdate, onBgUpdate }) {
   const [theme, setTheme] = useState("light");
   const [unlockedThemes, setUnlockedThemes] = useState([]);
@@ -31,6 +45,19 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
   const [statusText, setStatusText] = useState(user?.status || "");
   const [bannerCropFile, setBannerCropFile] = useState(null);
   const [userBg, setUserBg] = useState(() => localStorage.getItem("bg") || null);
+  const [profileTheme, setProfileTheme] = useState(user?.profileTheme || "");
+  const [fontSize, setFontSize] = useState("normal");
+  const [density, setDensity] = useState("normal");
+  const [reducedMotion, setReducedMotion] = useState(false);
+  const [bgVideo, setBgVideo] = useState("");
+  const [bgType, setBgType] = useState("gradient");
+
+  const isUnlocked = (themeId) => {
+    if (themeId === "light" || themeId === "dark" || themeId === "midnight" || themeId === "forest") return true;
+    if (user?.role === "admin") return true;
+    if (user?.role === "vip" && themeId === "royal") return true;
+    return unlockedThemes.includes(themeId);
+  };
 
   const showMessage = (text, type = "success") => {
     setMessage(text);
@@ -61,6 +88,22 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
         document.documentElement.removeAttribute("data-bg");
         if (onBgUpdate) onBgUpdate("");
       }
+      if (s.profileTheme) setProfileTheme(s.profileTheme);
+      if (s.fontSize) {
+        setFontSize(s.fontSize);
+        const sizes = { small: "14px", normal: "16px", large: "18px" };
+        document.documentElement.style.fontSize = sizes[s.fontSize] || "16px";
+      }
+      if (s.density) {
+        setDensity(s.density);
+        document.body.classList.add(`density-${s.density}`);
+      }
+      if (s.reducedMotion) {
+        setReducedMotion(true);
+        document.documentElement.style.setProperty("--reduced-motion", "reduce");
+      }
+      if (s.bgVideo) setBgVideo(s.bgVideo);
+      if (s.bgType) setBgType(s.bgType);
     }).catch(console.error);
   }, []);
 
@@ -90,6 +133,58 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
     } catch (err) {
       showMessage("Failed to set decoration", "error");
     }
+  };
+
+  const handleProfileTheme = async (val) => {
+    setProfileTheme(val);
+    try {
+      await settings.update({ profileTheme: val || null });
+      showMessage("Profile theme updated", "success");
+    } catch { showMessage("Failed to update profile theme", "error"); }
+  };
+
+  const handleFontSize = async (val) => {
+    setFontSize(val);
+    const sizes = { small: "14px", normal: "16px", large: "18px" };
+    document.documentElement.style.fontSize = sizes[val] || "16px";
+    try {
+      await settings.update({ fontSize: val });
+    } catch { showMessage("Failed to update font size", "error"); }
+  };
+
+  const handleDensity = async (val) => {
+    setDensity(val);
+    document.body.classList.remove("density-compact", "density-normal", "density-comfortable");
+    document.body.classList.add(`density-${val}`);
+    try {
+      await settings.update({ density: val });
+    } catch { showMessage("Failed to update density", "error"); }
+  };
+
+  const handleReducedMotion = async (val) => {
+    setReducedMotion(val);
+    if (val) {
+      document.documentElement.style.setProperty("--reduced-motion", "reduce");
+    } else {
+      document.documentElement.style.removeProperty("--reduced-motion");
+    }
+    try {
+      await settings.update({ reducedMotion: val });
+    } catch { showMessage("Failed to update motion preference", "error"); }
+  };
+
+  const handleBgVideo = async (val) => {
+    setBgVideo(val);
+    try {
+      await settings.update({ bgVideo: val || null });
+    } catch { showMessage("Failed to update video background", "error"); }
+  };
+
+  const handleBgType = async (val) => {
+    setBgType(val);
+    try {
+      await settings.update({ bgType: val });
+    } catch { showMessage("Failed to update background type", "error"); }
   };
 
   return (
@@ -215,6 +310,64 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
                   <X size={14} /> Remove
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="card-header"><h2>Profile Theme</h2></div>
+          <div className="card-body">
+            <p className="setting-desc">Choose a theme that others see when visiting your profile. Leave empty to use your current theme.</p>
+            <select className="input" value={profileTheme || ""} onChange={(e) => handleProfileTheme(e.target.value)}>
+              <option value="">Same as my theme</option>
+              {THEMES.filter((t) => isUnlocked(t.id)).map((t) => (
+                <option key={t.id} value={t.id}>{t.name}</option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="card-header"><h2>Display</h2></div>
+          <div className="card-body">
+            <div className="setting-row">
+              <span className="setting-label">Font Size</span>
+              <select className="input" value={fontSize} onChange={(e) => handleFontSize(e.target.value)} style={{ width: "auto" }}>
+                <option value="small">Small</option>
+                <option value="normal">Normal</option>
+                <option value="large">Large</option>
+              </select>
+            </div>
+            <div className="setting-row">
+              <span className="setting-label">Density</span>
+              <select className="input" value={density} onChange={(e) => handleDensity(e.target.value)} style={{ width: "auto" }}>
+                <option value="compact">Compact</option>
+                <option value="normal">Normal</option>
+                <option value="comfortable">Comfortable</option>
+              </select>
+            </div>
+            <div className="setting-row">
+              <span className="setting-label">Reduced Motion</span>
+              <label className="toggle">
+                <input type="checkbox" checked={reducedMotion} onChange={(e) => handleReducedMotion(e.target.checked)} />
+                <span className="toggle-slider" />
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div className="settings-card">
+          <div className="card-header"><h2>Video Background</h2></div>
+          <div className="card-body">
+            <p className="setting-desc">Paste a URL to a video (MP4/WebM) to use as your page background instead of gradients/images.</p>
+            <input type="text" className="input" value={bgVideo || ""} onChange={(e) => handleBgVideo(e.target.value)} placeholder="https://example.com/video.mp4" />
+            <div className="setting-row" style={{ marginTop: "0.5rem" }}>
+              <span className="setting-label">Background Type</span>
+              <select className="input" value={bgType} onChange={(e) => handleBgType(e.target.value)} style={{ width: "auto" }}>
+                <option value="gradient">Gradient</option>
+                <option value="image">Image/Upload</option>
+                <option value="video">Video</option>
+              </select>
             </div>
           </div>
         </div>

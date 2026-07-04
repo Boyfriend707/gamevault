@@ -28,7 +28,7 @@ function GameDetail() {
   useEffect(() => {
     games.getById(id).then((g) => {
       setGame(g);
-      setForm({ status: g.status, notes: g.notes || "", review: g.review || "", tagIds: (g.tags || []).map((gt) => gt.tag.id) });
+      setForm({ status: g.status, notes: g.notes || "", review: g.review || "", tagIds: (g.tags || []).map((gt) => gt.tag.id), cardColor: g.cardColor || "" });
       setLoading(false);
     }).catch(() => navigate("/collection"));
     tagsApi.list().then(setAllTags).catch(console.error);
@@ -41,6 +41,10 @@ function GameDetail() {
   const handleSave = async () => {
     try {
       const updated = await games.update(id, form);
+      if (form.cardColor !== undefined) {
+        await games.updateCardColor(id, form.cardColor || null);
+        updated.cardColor = form.cardColor || null;
+      }
       setGame(updated);
       setEditing(false);
     } catch (err) {
@@ -239,10 +243,17 @@ function GameDetail() {
                 ))}
               </div>
             </label>
-            <div className="edit-actions">
-              <button className="btn btn-secondary" onClick={() => setEditing(false)}><X size={16} /> Cancel</button>
-              <button className="btn btn-primary" onClick={handleSave}><Save size={16} /> Save</button>
-            </div>
+      <label>Card Color
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <input type="color" value={form.cardColor || "#6366f1"} onChange={(e) => setForm({ ...form, cardColor: e.target.value })} style={{ width: "40px", height: "32px", padding: "2px", border: "1px solid var(--border)", borderRadius: "4px" }} />
+          <input type="text" value={form.cardColor} onChange={(e) => setForm({ ...form, cardColor: e.target.value })} placeholder="#6366f1" className="input" style={{ flex: 1 }} />
+          {form.cardColor && <button className="btn btn-sm" onClick={() => setForm({ ...form, cardColor: "" })}>Clear</button>}
+        </div>
+      </label>
+      <div className="edit-actions">
+        <button className="btn btn-secondary" onClick={() => setEditing(false)}><X size={16} /> Cancel</button>
+        <button className="btn btn-primary" onClick={handleSave}><Save size={16} /> Save</button>
+      </div>
           </div>
         )}
 

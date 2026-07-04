@@ -410,14 +410,54 @@ router.put("/:id/pin", async (req, res) => {
       return res.status(400).json({ error: `Max ${maxPins} pinned games${user?.role === "vip" || user?.role === "admin" ? "" : " (3 for regular, 5 for VIP)"}` });
     }
 
+    const newPinned = !game.pinned;
+    const data = { pinned: newPinned };
+    if (newPinned) {
+      const maxPinOrder = await prisma.game.aggregate({ where: { userId: req.userId, pinned: true }, _max: { pinOrder: true } });
+      data.pinOrder = (maxPinOrder._max.pinOrder || 0) + 1;
+    } else {
+      data.pinOrder = 0;
+    }
     const updated = await prisma.game.update({
       where: { id: gameId },
-      data: { pinned: !game.pinned },
+      data,
       include: { tags: { include: { tag: true } } },
     });
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: "Failed to toggle pin" });
+  }
+});
+
+router.put("/:id/card-color", async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const game = await prisma.game.findUnique({ where: { id: gameId } });
+    if (!game || game.userId !== req.userId) return res.status(404).json({ error: "Game not found" });
+    const { cardColor } = req.body;
+    const updated = await prisma.game.update({
+      where: { id: gameId },
+      data: { cardColor: cardColor || null },
+    });
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update card color" });
+  }
+});
+
+router.put("/pin-order", async (req, res) => {
+  try {
+    const { order } = req.body;
+    if (!Array.isArray(order)) return res.status(400).json({ error: "Order must be an array of game IDs" });
+    for (let i = 0; i < order.length; i++) {
+      await prisma.game.updateMany({
+        where: { id: order[i], userId: req.userId },
+        data: { pinOrder: i + 1 },
+      });
+    }
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to reorder pins" });
   }
 });
 
