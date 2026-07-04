@@ -9,7 +9,10 @@ const isDev = !app.isPackaged;
 let mainWindow;
 let updateInfo = null;
 
+const { Menu } = require("electron");
+
 function createWindow() {
+  Menu.setApplicationMenu(null);
   mainWindow = new BrowserWindow({
     width: 1200,
     height: 800,

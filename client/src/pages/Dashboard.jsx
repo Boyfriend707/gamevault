@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   Gamepad2,
   PlayCircle,
@@ -39,6 +39,7 @@ function formatPlaytime(minutes) {
 
 function Dashboard({ user }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const [stats, setStats] = useState({ total: 0, playing: 0, completed: 0, backlog: 0, totalPlaytime: 0 });
   const [friendList, setFriendList] = useState([]);
   const [playtimeData, setPlaytimeData] = useState(null);
@@ -48,6 +49,7 @@ function Dashboard({ user }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    setLoading(true);
     Promise.all([games.stats(), friends.list()])
       .then(([statsData, friendsData]) => {
         setStats(statsData);
@@ -55,7 +57,7 @@ function Dashboard({ user }) {
       })
       .catch(console.error)
       .finally(() => setLoading(false));
-  }, []);
+  }, [location.pathname]);
 
   const handleViewFriendLib = async (friendId) => {
     try {
