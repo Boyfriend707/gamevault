@@ -1,5 +1,5 @@
 {
-  "version": "1.0.0",
-  "installer": "GameVault-Setup-1.0.0.exe",
-  "notes": "Initial release"
+  "version": "1.0.1",
+  "installer": "GameVault-Setup-1.0.1.exe",
+  "notes": "Persist auth/theme/bg via IPC file store; add retry logic for server wake-up"
 }
