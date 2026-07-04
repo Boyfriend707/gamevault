@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Trophy, Plus, Gamepad2, Users, Calendar, Clock, ChevronRight, X } from "lucide-react";
-import { challenges as challengesApi, games } from "../api";
+import { Trophy, Plus, Gamepad2, Users, Calendar, Clock, ChevronRight, X, Flame } from "lucide-react";
+import { challenges as challengesApi, games, dailyChallenges as dailyChallengesApi } from "../api";
 
 function Challenges() {
   const navigate = useNavigate();
   const [challengeList, setChallengeList] = useState([]);
   const [gameList, setGameList] = useState([]);
+  const [dailyChallengesList, setDailyChallengesList] = useState([]);
+  const [loginStreak, setLoginStreak] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
   const [selectedChallenge, setSelectedChallenge] = useState(null);
   const [form, setForm] = useState({ name: "", gameId: "", endDate: "" });
@@ -15,6 +17,8 @@ function Challenges() {
   useEffect(() => {
     fetchChallenges();
     games.list().then(setGameList).catch(console.error);
+    dailyChallengesApi.list().then((list) => setDailyChallengesList(list)).catch(console.error);
+    dailyChallengesApi.check().then((data) => setLoginStreak(data.loginStreak || 0)).catch(console.error);
   }, []);
 
   const fetchChallenges = async () => {
@@ -74,6 +78,40 @@ function Challenges() {
         <button className="btn btn-primary" onClick={() => setShowCreate(true)}>
           <Plus size={18} /> Create Challenge
         </button>
+      </div>
+
+      <div className="card" style={{ marginBottom: "1rem" }}>
+        <div className="card-header">
+          <h2>Daily Challenges</h2>
+          <span className="badge" style={{ backgroundColor: "var(--accent)" }}><Flame size={14} /> {loginStreak} day streak</span>
+        </div>
+        <div className="card-body">
+          {dailyChallengesList.length === 0 ? (
+            <p className="empty-text">No daily challenges for today yet. Play some games to generate them!</p>
+          ) : (
+            <div className="daily-challenges-list">
+              {dailyChallengesList.map((dc) => (
+                <div key={dc.id} className={`daily-challenge-item ${dc.completed ? "daily-challenge-done" : ""}`}>
+                  <div className="daily-challenge-info">
+                    <span className="daily-challenge-name">{dc.name}</span>
+                    <span className="setting-desc">{dc.description}</span>
+                  </div>
+                  <div className="daily-challenge-right">
+                    <div className="daily-challenge-progress-bar">
+                      <div className="daily-challenge-progress-fill" style={{ width: `${Math.min(100, (dc.progress / dc.requirement) * 100)}%` }} />
+                    </div>
+                    <span className="daily-challenge-progress-text">{Math.min(dc.progress, dc.requirement)}/{dc.requirement}</span>
+                    {dc.completed ? (
+                      <span className="badge" style={{ backgroundColor: "#22c55e" }}>+{dc.xpReward} XP</span>
+                    ) : (
+                      <span className="badge" style={{ backgroundColor: "var(--text-muted)" }}>{dc.xpReward} XP</span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
 
       {loading ? (

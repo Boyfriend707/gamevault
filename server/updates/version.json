@@ -1,5 +1,5 @@
 {
     "installer":  "GameVault Setup 1.2.3.exe",
     "version":  "1.2.3",
-    "notes":  "Fix prisma db push double-run causing false data loss warnings"
+    "notes":  "Fix Appearance card styling, move Daily Challenges to Challenges tab"
 }

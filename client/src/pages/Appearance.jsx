@@ -314,7 +314,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
           </div>
         </div>
 
-        <div className="settings-card">
+        <div className="card">
           <div className="card-header"><h2>Profile Theme</h2></div>
           <div className="card-body">
             <p className="setting-desc">Choose a theme that others see when visiting your profile. Leave empty to use your current theme.</p>
@@ -327,7 +327,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
           </div>
         </div>
 
-        <div className="settings-card">
+        <div className="card">
           <div className="card-header"><h2>Display</h2></div>
           <div className="card-body">
             <div className="setting-row">
@@ -356,7 +356,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
           </div>
         </div>
 
-        <div className="settings-card">
+        <div className="card">
           <div className="card-header"><h2>Video Background</h2></div>
           <div className="card-body">
             <p className="setting-desc">Paste a URL to a video (MP4/WebM) to use as your page background instead of gradients/images.</p>
