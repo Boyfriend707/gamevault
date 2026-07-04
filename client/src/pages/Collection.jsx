@@ -548,13 +548,17 @@ function Collection() {
                       Steam Cover
                     </button>
                   )}
-                  <button type="button" className="btn btn-secondary" onClick={() => {
+                    <button type="button" className="btn btn-secondary" onClick={() => {
                     const input = document.createElement("input");
                     input.type = "file";
-                    input.accept = "image/*";
+                    input.accept = "image/png,image/jpeg,image/gif,image/webp";
                     input.onchange = async (e) => {
                       const file = e.target.files?.[0];
                       if (!file) return;
+                      const ext = file.name.split(".").pop().toLowerCase();
+                      if (!["png", "jpg", "jpeg", "gif", "webp"].includes(ext)) {
+                        return alert("Only PNG, JPG, GIF, and WebP files are supported for covers.");
+                      }
                       try {
                         const result = await games.uploadCover(file);
                         setForm({ ...form, coverUrl: result.coverUrl });

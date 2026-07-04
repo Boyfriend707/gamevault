@@ -43,10 +43,10 @@ const upload = multer({
   },
 });
 
-function uploadToCloudinary(buffer, publicId) {
+function uploadToCloudinary(buffer, publicId, opts = {}) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(
-      { public_id: publicId, resource_type: "image" },
+      { public_id: publicId, resource_type: "image", ...opts },
       (error, result) => {
         if (error) reject(error);
         else resolve(result.secure_url);
