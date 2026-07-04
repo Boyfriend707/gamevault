@@ -38,11 +38,21 @@ function App() {
 
     const token = localStorage.getItem("token");
     if (token) {
-      auth
-        .me()
-        .then((u) => setUser(u))
-        .catch((err) => { if (err.status === 401) localStorage.removeItem("token"); })
-        .finally(() => setLoading(false));
+      const retry = (attempts = 0) => {
+        auth.me()
+          .then((u) => { setUser(u); setLoading(false); })
+          .catch((err) => {
+            if (err.status === 401) {
+              localStorage.removeItem("token");
+              setLoading(false);
+            } else if (attempts < 8) {
+              setTimeout(() => retry(attempts + 1), (attempts + 1) * 2000);
+            } else {
+              setLoading(false);
+            }
+          });
+      };
+      retry();
     } else {
       setLoading(false);
     }
