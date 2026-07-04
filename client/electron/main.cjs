@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require("electron");
 const path = require("path");
 const http = require("http");
 const fs = require("fs");
@@ -34,14 +34,15 @@ function createWindow() {
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
   });
+
+  mainWindow.webContents.on("before-input-event", (event, input) => {
+    if (input.key === "F12") {
+      mainWindow.webContents.toggleDevTools();
+    }
+  });
 }
 
-app.whenReady().then(() => {
-  globalShortcut.register("F12", () => {
-    if (mainWindow) mainWindow.webContents.toggleDevTools();
-  });
-  createWindow();
-});
+app.whenReady().then(createWindow);
 
 function checkForUpdates(serverUrl) {
   return new Promise((resolve) => {
@@ -139,6 +140,10 @@ ipcMain.handle("download-update", async (event, serverUrl) => {
   } catch (err) {
     return { success: false, error: err.message };
   }
+});
+
+ipcMain.handle("open-devtools", () => {
+  if (mainWindow) mainWindow.webContents.toggleDevTools();
 });
 
 ipcMain.handle("install-update", async (event, installerPath) => {
@@ -290,6 +295,8 @@ ipcMain.handle("pick-directory", async () => {
   return result.filePaths[0];
 });
 
+app.whenReady().then(createWindow);
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
@@ -300,8 +307,4 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
-});
-
-app.on("will-quit", () => {
-  globalShortcut.unregisterAll();
 });

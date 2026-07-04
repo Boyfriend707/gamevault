@@ -23,4 +23,5 @@ contextBridge.exposeInMainWorld("electronAPI", {
   },
   scanForGames: (dirPath) => ipcRenderer.invoke("scan-for-games", dirPath),
   pickDirectory: () => ipcRenderer.invoke("pick-directory"),
+  openDevTools: () => ipcRenderer.invoke("open-devtools"),
 });

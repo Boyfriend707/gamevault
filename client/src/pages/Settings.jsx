@@ -623,7 +623,12 @@ const [editingDecoName, setEditingDecoName] = useState("");
           <>
             <DebugPanel />
             <div className="card">
-              <div className="card-body">
+              <div className="card-body" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                {window.electronAPI?.openDevTools && (
+                  <button className="btn btn-secondary" onClick={() => window.electronAPI.openDevTools()}>
+                    Open DevTools
+                  </button>
+                )}
                 <button className="btn btn-secondary btn-danger" onClick={() => {
                   localStorage.removeItem("dev-mode");
                   setDevMode(false);
