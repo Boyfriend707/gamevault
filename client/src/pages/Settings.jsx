@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Key, Users, UserPlus, Check, X, Download, Camera, Eye, User, MessageSquare, Trophy, Lock, Shield, ChevronRight, Pencil } from "lucide-react";
 import { settings, friends, auth, goals as goalsApi, admin as adminApi, decorations as decorationsApi, chats as chatsApi } from "../api";
-import config from "../config";
+import config, { resolveAssetUrl } from "../config";
 import DebugPanel from "../components/DebugPanel";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
@@ -553,7 +553,7 @@ const [editingDecoName, setEditingDecoName] = useState("");
                         </div>
                       ) : (
                         <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                          <img src={`${config.SERVER_URL}${d.fileUrl}`} alt={d.name}
+                          <img src={resolveAssetUrl(d.fileUrl)} alt={d.name}
                             style={{ width: 24, height: 24, objectFit: "contain", borderRadius: 4, background: "var(--surface)" }} />
                           {d.name}
                         </span>
