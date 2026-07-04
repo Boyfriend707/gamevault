@@ -59,7 +59,7 @@ function uploadToCloudinary(buffer, publicId, opts = {}) {
 app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 
-const publicDir = path.resolve(__dirname, "../public");
+const publicDir = process.env.PUBLIC_DIR || path.resolve(__dirname, "../../client/dist");
 if (process.env.NODE_ENV === "production" && fs.existsSync(publicDir)) {
   app.use(express.static(publicDir));
 }

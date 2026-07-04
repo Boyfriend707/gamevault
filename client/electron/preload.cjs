@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require("electron");
 contextBridge.exposeInMainWorld("electronAPI", {
   platform: process.platform,
   isElectron: true,
+  serverUrl: "https://gamevault-gldm.onrender.com",
   steamAuth: (url) => ipcRenderer.invoke("steam-auth", url),
   checkUpdate: (serverUrl) => ipcRenderer.invoke("check-update", serverUrl),
   downloadUpdate: (serverUrl) => ipcRenderer.invoke("download-update", serverUrl),
