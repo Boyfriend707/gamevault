@@ -179,6 +179,26 @@ function Profile({ user: currentUser }) {
         </div>
       </div>
 
+      {(() => {
+        const playingGames = profile.games.filter((g) => g.status === "playing");
+        if (playingGames.length === 0) return null;
+        return (
+          <div className="card">
+            <div className="card-header"><h2><PlayCircle size={16} /> Currently Playing</h2></div>
+            <div className="card-body">
+              <div className="currently-playing-list">
+                {playingGames.map((g) => (
+                  <div key={g.id} className="currently-playing-item" onClick={() => navigate(`/game/${g.id}`)} style={{ cursor: "pointer" }}>
+                    {g.coverUrl ? <img src={resolveAssetUrl(g.coverUrl)} alt="" className="currently-playing-cover" /> : <Gamepad2 size={32} className="currently-playing-icon" />}
+                    <span className="currently-playing-name">{g.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
       {profile.mutualFriends && profile.mutualFriends.length > 0 && (
         <div className="card">
           <div className="card-header"><h2><Users size={16} /> Mutual Friends ({profile.mutualFriends.length})</h2></div>
@@ -197,9 +217,8 @@ function Profile({ user: currentUser }) {
 
       <div className="stat-cards">
         <div className="stat-card"><Trophy size={20} /><span>{profile.stats.total} Games</span></div>
-        <div className="stat-card" style={{ "--stat-color": "#22c55e" }}><PlayCircle size={20} /><span>{profile.stats.playing} Playing</span></div>
+        <div className="stat-card" style={{ "--stat-color": "#22c55e" }}><PlayCircle size={20} /><span>Playing</span></div>
         <div className="stat-card" style={{ "--stat-color": "#3b82f6" }}><CheckCircle2 size={20} /><span>{profile.stats.completed} Completed</span></div>
-        <div className="stat-card" style={{ "--stat-color": "#f59e0b" }}><Clock size={20} /><span>{profile.stats.notPlaying} Not Playing</span></div>
         <div className="stat-card" style={{ "--stat-color": "#ec4899" }}><Timer size={20} /><span>{Math.floor(profile.stats.totalPlaytime / 60)}h {profile.stats.totalPlaytime % 60}m Total</span></div>
         {profile.xp !== undefined && (
           <div className="stat-card" style={{ "--stat-color": "#a855f7" }}><Zap size={20} /><span>Lv.{calcLevel(profile.xp)} ({profile.xp} XP)</span></div>

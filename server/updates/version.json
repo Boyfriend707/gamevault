@@ -1,5 +1,5 @@
 {
     "installer":  "GameVault Setup 1.2.3.exe",
     "version":  "1.2.3",
-    "notes":  "Fix Appearance card styling, move Daily Challenges to Challenges tab"
+    "notes":  "Redesign Profile stats: remove Not Playing count, show Currently Playing cards under bio"
 }
