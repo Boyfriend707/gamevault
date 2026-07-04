@@ -142,7 +142,7 @@ router.post("/sync", authenticateToken, async (req, res) => {
             steamAppId: game.appid,
             userId: req.userId,
             playtime: game.playtime_forever || 0,
-            coverUrl: `https://steamcdn-a.akamaihd.net/steam/apps/${game.appid}/library_600x900.jpg`,
+            coverUrl: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${game.appid}/library_600x900.jpg`,
           },
         });
       }

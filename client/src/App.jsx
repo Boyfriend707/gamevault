@@ -55,7 +55,7 @@ function App() {
         if (result.available && result.version !== snoozed) {
           setUpdateInfo(result);
         }
-      });
+      }).catch(() => {});
     }
   }, [loading, user]);
 
@@ -73,8 +73,8 @@ function App() {
 
   const handleCheckUpdate = async () => {
     if (!window.electronAPI) return;
-    const result = await window.electronAPI.checkUpdate(config.SERVER_URL);
-    if (result.available) {
+    const result = await window.electronAPI.checkUpdate(config.SERVER_URL).catch(() => null);
+    if (result?.available) {
       setUpdateInfo(result);
     } else {
       alert("You have the latest version!");

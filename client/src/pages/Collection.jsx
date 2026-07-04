@@ -543,7 +543,7 @@ function Collection() {
                   />
                   {form.steamAppId && (
                     <button type="button" className="btn btn-secondary" onClick={() => {
-                      setForm({ ...form, coverUrl: `https://steamcdn-a.akamaihd.net/steam/apps/${form.steamAppId}/library_600x900.jpg` });
+                      setForm({ ...form, coverUrl: `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${form.steamAppId}/library_600x900.jpg` });
                     }}>
                       Steam Cover
                     </button>

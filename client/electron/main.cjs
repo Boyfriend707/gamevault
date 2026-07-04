@@ -1,10 +1,12 @@
 const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require("electron");
 const path = require("path");
 const http = require("http");
+const https = require("https");
 const fs = require("fs");
 const { execFile, spawn } = require("child_process");
 
 const isDev = !app.isPackaged;
+function getMod(url) { return url.startsWith("https") ? https : http; }
 
 let mainWindow;
 let updateInfo = null;
@@ -47,7 +49,7 @@ app.whenReady().then(createWindow);
 function checkForUpdates(serverUrl) {
   return new Promise((resolve) => {
     const url = `${serverUrl}/api/update`;
-    http.get(url, (res) => {
+    getMod(url).get(url, (res) => {
       let data = "";
       res.on("data", (chunk) => (data += chunk));
       res.on("end", () => {
@@ -71,7 +73,7 @@ function checkForUpdates(serverUrl) {
 async function downloadUpdate(downloadUrl, destPath) {
   return new Promise((resolve, reject) => {
     const file = fs.createWriteStream(destPath);
-    http.get(downloadUrl, (res) => {
+    getMod(downloadUrl).get(downloadUrl, (res) => {
       const total = parseInt(res.headers["content-length"] || "0");
       let downloaded = 0;
       res.on("data", (chunk) => {
