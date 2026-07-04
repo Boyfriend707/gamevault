@@ -1,35 +1,39 @@
 # GameVault
 
-A gaming dashboard desktop app for you and your friends. Track game collections, link Steam accounts, and see what your friends are playing.
+A gaming dashboard desktop app for you and your friends. Track game collections, link Steam accounts, log playtime, earn XP, complete goals and challenges, share screenshots, and see what your friends are playing.
 
-## Project Structure
+## Stack
 
-```
-GameVault/
-├── client/          # Electron + React (Vite) desktop app
-├── server/          # Express + Prisma + SQLite backend
-└── README.md
-```
+- **Client** — Electron + React (Vite) desktop app
+- **Server** — Express + Prisma + PostgreSQL (Neon)
+- **Auth** — bcrypt + JWT
+- **Uploads** — Cloudinary (avatars, banners, covers, screenshots, decorations)
+- **Hosting** — Render (server) + Neon (database) + Cloudinary (media)
+- **CI/CD** — GitHub → Render auto-deploy + `deploy.ps1` for .exe releases
 
 ## Quick Start (Development)
 
 ### Prerequisites
 
 - Node.js 18+
-- A Steam Web API key (free) — get one at https://steamcommunity.com/dev/apikey
+- A Steam Web API key (free) — https://steamcommunity.com/dev/apikey
+- Cloudinary account (free) — https://cloudinary.com
+- Neon PostgreSQL database (free) — https://neon.tech
 
 ### 1. Set up the server
 
 ```bash
 cd server
 
-# Edit .env and set your STEAM_API_KEY
-# The defaults work for local development
+# Copy .env.example or create .env with:
+# DATABASE_URL=postgresql://...
+# JWT_SECRET=your-secret
+# STEAM_API_KEY=your-key
+# CLOUDINARY_CLOUD_NAME=your-cloud
+# CLOUDINARY_API_KEY=your-key
+# CLOUDINARY_API_SECRET=your-secret
 
-# Push the database schema
 npx prisma db push
-
-# Start the dev server
 npm run dev
 ```
 
@@ -44,145 +48,109 @@ npm run dev
 
 Client runs on **http://localhost:5173**.
 
-### 3. Desktop app (optional, for development)
+### 3. Desktop app (development)
 
 ```bash
 cd client
 npm run electron:dev
 ```
 
-## Deploying the Server (Katabump Free Tier)
+## Deploying
 
-Katabump offers free Node.js hosting (308 MB RAM, 716 MB storage) that must be renewed every 4 days.
+### Server (Render + Neon + Cloudinary)
 
-### Step 1: Prepare the server files
+1. Create a Neon database, copy the connection string
+2. Create a Cloudinary account, note the credentials
+3. On Render, create a **New Web Service** connected to your GitHub repo
+4. Set the build command:
+   ```
+   cd client && npm install --include=dev && npm run build && cd ../server && npm install
+   ```
+5. Set the start command:
+   ```
+   cd server && npx prisma db push && node src/index.js
+   ```
+6. Add environment variables (Render Dashboard > Environment):
+   - `DATABASE_URL` — your Neon connection string
+   - `JWT_SECRET` — a random string
+   - `STEAM_API_KEY` — your Steam API key
+   - `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`
+   - `ADMIN_PASSWORD` — for the admin panel
+7. Deploy — Render builds and runs the server, which also serves the built React app
 
-```bash
-cd server
+### Desktop App (.exe)
 
-# Install dependencies
-npm install
-
-# Generate Prisma client
-npx prisma generate
-```
-
-### Step 2: Create a ZIP archive
-
-Create a ZIP of the `server/` folder including:
-- `src/` (all source files)
-- `prisma/` (schema + migrations)
-- `package.json`
-- `package-lock.json`
-- `.env` (with your config)
-
-**Important:** The `.env` file must include your `STEAM_API_KEY`, a `JWT_SECRET`, and `DATABASE_URL=file:./dev.db`.
-
-### Step 3: Upload to Katabump
-
-1. Go to https://dashboard.katabump.com and create a **Node.js** server
-2. Upload the ZIP via the **Files** tab and unarchive it
-3. Go to the **Startup** tab and set the entry point to `src/index.js`
-4. Select Node.js version **20** or **22**
-5. Go to **Console** and click **Start**
-
-The server will run `npm start` (which runs `node src/index.js`). Your database will be stored in the SQLite file at `prisma/dev.db`.
-
-### Step 4: Note your server URL
-
-Katabump will assign a URL like `https://your-server.katabump.com`. You'll need this for the desktop app.
-
-## Packaging the Client (.exe Installer)
-
-### Prerequisites
-
-- Windows machine (to build Windows installer)
-- The server must be deployed somewhere accessible to your friends
-
-### Step 1: Set the server URL
-
-Edit `client/src/config.js` and change `API_BASE` to your deployed server URL:
-```js
-let base = "https://your-server.katabump.com/api";
-```
-
-### Step 2: Build the installer
+The server URL is hardcoded in `client/electron/preload.cjs`. Build the installer:
 
 ```bash
 cd client
 npm run electron:build
 ```
 
-The installer will be created in `client/release/`. It's a `.exe` file your friends can install.
+Output: `client/release/GameVault Setup X.X.X.exe`
 
-### Step 3: Distribute
+### Publishing a Release
 
-Share the `.exe` with friends. When they open GameVault, it will connect to your server automatically.
+Use the included `deploy.ps1` script:
 
-## How Updates Work
+```powershell
+# Full release (bumps patch version, builds frontend + .exe, pushes to GitHub)
+./deploy.ps1 -Notes "What changed"
 
-When you release a new version, here's the flow:
+# Web-only (skip .exe build)
+./deploy.ps1 -SkipExe -Notes "What changed"
+```
 
-### Releasing a new client version
+This auto-increments the patch version, updates `package.json` and `version.json`, builds everything, commits, and pushes. The .exe is copied to `server/updates/` so the auto-update system picks it up.
 
-1. Make your code changes in the `client/` folder
-2. Update the `version` field in `client/package.json` (e.g., `"1.1.0"`)
-3. Build the new installer:
-   ```bash
-   cd client
-   npm run electron:build
-   ```
-4. This creates `client/release/GameVault Setup X.X.X.exe` + `latest.yml`
-5. Upload both files to your server's `updates/` folder:
-   - `server/updates/GameVault-Setup-X.X.X.exe`
-   - `server/updates/latest.yml`
-6. Update `server/updates/version.json` with the new version number
+## Auto-Update
 
-### Releasing a new server version
+On startup, the app pings `/api/update` on the server. If a newer version is found, a popup offers **Install & Restart** or **Not Now**. The installer is downloaded from `https://your-server.onrender.com/updates/GameVault Setup X.X.X.exe`.
 
-1. Make your code changes in the `server/` folder
-2. Create a new ZIP of the `server/` folder
-3. On Katabump, upload the ZIP via the **Files** tab and unarchive it (overwrite existing files)
-4. Go to **Console** and click **Restart**
+To bump versions without building a new .exe, just update `server/updates/version.json`.
 
-### What users see
+## Features
 
-- When a friend launches the app, it checks the server for a newer version
-- If one is found, a popup shows: "Update Available — vX.X.X"
-- They can choose **Download Update** → progress bar shows download %
-- Then **Install & Restart** → runs the installer and quits the app
-- Or **Not Now** → they can update later from **Settings > Updates > Check for Updates**
-- If they snooze, that version won't prompt again (until a newer one comes out)
-
-## How It Works
-
-- **Server** — Express API + SQLite database. Stores users, games, friendships, Steam links.
-- **Client** — React app in Electron. Talks to the server via HTTP.
-- **Auth** — Register/login with username + password. Passwords hashed with bcrypt, sessions via JWT.
-- **Friends** — Search by exact username, send/accept/decline requests.
-- **Games** — Add/edit/remove with platform, status (playing/completed/backlog/dropped), notes.
-- **Steam** — Link via Steam OpenID (opens a child window in the desktop app). Sync owned games and online status.
-- **Settings** — Change password, toggle light/dark theme, manage friends.
-
-### Steam Linking (Desktop App)
-
-In the Electron desktop app, Steam authentication opens inside the app (not your browser). A child window handles the Steam login flow and closes automatically when done.
+- **Game Collection** — add/edit/delete games with platform, status, notes, cover art, star rating
+- **Steam Sync** — link your Steam account, import your library and online status
+- **Playtime Tracking** — auto-detects when a launched .exe exits and logs elapsed time
+- **Friends** — search by username, send/accept/decline requests, browse friend libraries
+- **Levels & XP** — earn XP for adding games (+25), playtime (+1/min), goals (+100), ratings (+20), tags (+10)
+- **Goals** — 13 auto-completing goals (first game, rate 5 games, add friends, etc.) with theme unlocks
+- **Challenges** — create competitions with end dates, join friends, pick winners
+- **Achievements / Milestones** — add custom milestones per game, mark complete, show on profile
+- **Screenshots** — upload per-game screenshots with captions, view in gallery/carousel
+- **Server Status** — track game server hosts/ports with online/offline ping
+- **Playtime Leaderboard** — top 5 friends by total playtime on the dashboard
+- **Game Randomizer** — one-click random game picker
+- **Layout Customization** — grid/list toggle, sort by name/playtime/rating/recent
+- **Chat** — real-time (polling) messaging with friends
+- **Notifications** — bell icon with unread count for friend requests, goal completions
+- **Profile** — custom display name, bio, banner, avatar with decorations, stat cards, pinned games, milestones
+- **Appearance** — 11 themes, custom accent color picker, animated gradient/uploaded backgrounds
+- **Admin Panel** — tap version 5x → enter `ADMIN_PASSWORD` → manage users (roles, XP), delete games, manage decorations
+- **Decorations** — GIF overlays for avatars, uploaded via admin panel
+- **Auto-Update** — checks server for new .exe versions on launch
 
 ## Configuration
 
 ### Server (`server/.env`)
 
-| Variable | Description | Default |
-|---|---|---|
-| `DATABASE_URL` | SQLite database path | `file:./dev.db` |
-| `JWT_SECRET` | Secret key for JWT signing | Change for production |
-| `STEAM_API_KEY` | Your Steam Web API key | Required for Steam features |
-| `PORT` | Server port (Katabump sets this) | `3001` |
+| Variable | Description |
+|---|---|
+| `DATABASE_URL` | Neon PostgreSQL connection string |
+| `JWT_SECRET` | Secret key for JWT signing |
+| `STEAM_API_KEY` | Required for Steam features |
+| `CLOUDINARY_CLOUD_NAME` | Cloudinary cloud name |
+| `CLOUDINARY_API_KEY` | Cloudinary API key |
+| `CLOUDINARY_API_SECRET` | Cloudinary API secret |
+| `ADMIN_PASSWORD` | Admin panel login password |
+| `PORT` | Server port (Render sets this) |
 
-## Security Notes
+## Security
 
-- Passwords are hashed with bcrypt (never stored in plain text)
-- Steam API key is server-side only — never exposed to the client
+- Passwords hashed with bcrypt
+- Steam API key is server-side only
 - JWT tokens expire after 7 days
-- Friend data is only visible to accepted friends
-- Input validation is performed on the server
+- Friend data visible only to accepted friends
+- Input validation on the server
