@@ -44,17 +44,20 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
       const t = s.theme || "light";
       setTheme(t);
       localStorage.setItem("theme", t);
+      if (window.electronAPI?.storeSet) window.electronAPI.storeSet("theme", t);
       document.documentElement.setAttribute("data-theme", t);
       setUnlockedThemes(s.unlockedThemes ? JSON.parse(s.unlockedThemes) : []);
       const bg = s.background;
       if (bg) {
         setUserBg(bg);
         localStorage.setItem("bg", bg);
+        if (window.electronAPI?.storeSet) window.electronAPI.storeSet("bg", bg);
         document.documentElement.setAttribute("data-bg", bg.startsWith("/uploads") ? "custom" : bg);
         if (onBgUpdate) onBgUpdate(bg);
       } else if (localStorage.getItem("bg")) {
         setUserBg(null);
         localStorage.removeItem("bg");
+        if (window.electronAPI?.storeSet) window.electronAPI.storeSet("bg", null);
         document.documentElement.removeAttribute("data-bg");
         if (onBgUpdate) onBgUpdate("");
       }
@@ -134,6 +137,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
                     settings.update({ theme: t.id });
                     setTheme(t.id);
                     localStorage.setItem("theme", t.id);
+                    if (window.electronAPI?.storeSet) window.electronAPI.storeSet("theme", t.id);
                     document.documentElement.setAttribute("data-theme", t.id);
                   }}
                 >
@@ -165,6 +169,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
                       const s = await settings.update({ background: bg.id });
                       setUserBg(bg.id);
                       localStorage.setItem("bg", bg.id || "");
+                      if (window.electronAPI?.storeSet) window.electronAPI.storeSet("bg", bg.id || "");
                       document.documentElement.setAttribute("data-bg", bg.id || "");
                       if (onBgUpdate) onBgUpdate(bg.id || "");
                       showMessage(bg.id ? `Background set to ${bg.label}` : "Background removed");
@@ -187,6 +192,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
                     await settings.update({ background: result.backgroundUrl });
                     setUserBg(result.backgroundUrl);
                     localStorage.setItem("bg", result.backgroundUrl);
+                    if (window.electronAPI?.storeSet) window.electronAPI.storeSet("bg", result.backgroundUrl);
                     document.documentElement.setAttribute("data-bg", "custom");
                     if (onBgUpdate) onBgUpdate(result.backgroundUrl);
                     showMessage("Background uploaded!");
@@ -200,6 +206,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
                     await settings.update({ background: null });
                     setUserBg(null);
                     localStorage.setItem("bg", "");
+                    if (window.electronAPI?.storeSet) window.electronAPI.storeSet("bg", null);
                     document.documentElement.setAttribute("data-bg", "");
                     if (onBgUpdate) onBgUpdate("");
                     showMessage("Background removed");

@@ -29,19 +29,18 @@ function App() {
   useShortcut("close", () => { const m = document.querySelector(".modal-overlay"); if (m) m.click(); });
 
   useEffect(() => {
-    document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "light");
-    const bg = localStorage.getItem("bg");
-    if (bg) {
-      document.documentElement.setAttribute("data-bg", bg.startsWith("/uploads") ? "custom" : bg);
-      setBgValue(bg);
-    }
-
     (async () => {
-      let token = localStorage.getItem("token");
-      if (!token && window.electronAPI?.loadToken) {
-        token = await window.electronAPI.loadToken();
-        if (token) localStorage.setItem("token", token);
+      const store = window.electronAPI?.storeGet;
+      const theme = localStorage.getItem("theme") || (store ? await store("theme") : null) || "light";
+      document.documentElement.setAttribute("data-theme", theme);
+      const bg = localStorage.getItem("bg") || (store ? await store("bg") : null);
+      if (bg) {
+        document.documentElement.setAttribute("data-bg", bg.startsWith("/uploads") ? "custom" : bg);
+        setBgValue(bg);
       }
+
+      let token = localStorage.getItem("token") || (store ? await store("token") : null);
+      if (token) localStorage.setItem("token", token);
       if (token) {
         for (let i = 0; i < 60; i++) {
           try {
@@ -52,7 +51,7 @@ function App() {
           } catch (err) {
             if (err.status === 401) {
               localStorage.removeItem("token");
-              if (window.electronAPI?.clearToken) await window.electronAPI.clearToken();
+              if (window.electronAPI?.storeSet) await window.electronAPI.storeSet("token", null);
               setLoading(false);
               return;
             }
@@ -79,14 +78,14 @@ function App() {
 
   const handleLogin = async (token, userData) => {
     localStorage.setItem("token", token);
-    if (window.electronAPI?.saveToken) await window.electronAPI.saveToken(token);
+    if (window.electronAPI?.storeSet) await window.electronAPI.storeSet("token", token);
     setUser(userData);
     navigate("/");
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
     localStorage.removeItem("token");
-    if (window.electronAPI?.clearToken) window.electronAPI.clearToken();
+    if (window.electronAPI?.storeSet) await window.electronAPI.storeSet("token", null);
     setUser(null);
     navigate("/login");
   };

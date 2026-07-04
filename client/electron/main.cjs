@@ -297,18 +297,27 @@ ipcMain.handle("pick-directory", async () => {
   return result.filePaths[0];
 });
 
-const tokenPath = path.join(app.getPath("userData"), "auth-token.json");
-ipcMain.handle("save-token", async (_, token) => {
-  fs.writeFileSync(tokenPath, JSON.stringify({ token }), "utf-8");
+const storePath = path.join(app.getPath("userData"), "store.json");
+function readStore() {
+  try { return JSON.parse(fs.readFileSync(storePath, "utf-8")); } catch { return {}; }
+}
+function writeStore(data) {
+  fs.writeFileSync(storePath, JSON.stringify(data), "utf-8");
+}
+ipcMain.handle("store-get", async (_, key) => {
+  return readStore()[key] ?? null;
 });
-ipcMain.handle("load-token", async () => {
-  try {
-    const data = JSON.parse(fs.readFileSync(tokenPath, "utf-8"));
-    return data.token || null;
-  } catch { return null; }
+ipcMain.handle("store-set", async (_, key, value) => {
+  const store = readStore();
+  if (value === null || value === undefined) {
+    delete store[key];
+  } else {
+    store[key] = value;
+  }
+  writeStore(store);
 });
-ipcMain.handle("clear-token", async () => {
-  try { fs.unlinkSync(tokenPath); } catch {}
+ipcMain.handle("store-keys", async () => {
+  return Object.keys(readStore());
 });
 
 app.whenReady().then(createWindow);

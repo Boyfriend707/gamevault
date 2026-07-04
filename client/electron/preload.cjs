@@ -25,9 +25,8 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("tracking-started", handler);
     return () => ipcRenderer.removeListener("tracking-started", handler);
   },
-  saveToken: (token) => ipcRenderer.invoke("save-token", token),
-  loadToken: () => ipcRenderer.invoke("load-token"),
-  clearToken: () => ipcRenderer.invoke("clear-token"),
+  storeGet: (key) => ipcRenderer.invoke("store-get", key),
+  storeSet: (key, value) => ipcRenderer.invoke("store-set", key, value),
   scanForGames: (dirPath) => ipcRenderer.invoke("scan-for-games", dirPath),
   pickDirectory: () => ipcRenderer.invoke("pick-directory"),
   openDevTools: () => ipcRenderer.invoke("open-devtools"),
