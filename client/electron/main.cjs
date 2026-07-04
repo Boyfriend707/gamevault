@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, globalShortcut, Menu } = require("electron");
 const path = require("path");
 const http = require("http");
 const fs = require("fs");
@@ -8,8 +8,6 @@ const isDev = !app.isPackaged;
 
 let mainWindow;
 let updateInfo = null;
-
-const { Menu } = require("electron");
 
 function createWindow() {
   Menu.setApplicationMenu(null);
@@ -37,6 +35,13 @@ function createWindow() {
     mainWindow.show();
   });
 }
+
+app.whenReady().then(() => {
+  globalShortcut.register("F12", () => {
+    if (mainWindow) mainWindow.webContents.toggleDevTools();
+  });
+  createWindow();
+});
 
 function checkForUpdates(serverUrl) {
   return new Promise((resolve) => {
@@ -285,8 +290,6 @@ ipcMain.handle("pick-directory", async () => {
   return result.filePaths[0];
 });
 
-app.whenReady().then(createWindow);
-
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     app.quit();
@@ -297,4 +300,8 @@ app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
   }
+});
+
+app.on("will-quit", () => {
+  globalShortcut.unregisterAll();
 });

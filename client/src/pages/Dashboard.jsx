@@ -49,15 +49,11 @@ function Dashboard({ user }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    setLoading(true);
-    Promise.all([games.stats(), friends.list()])
-      .then(([statsData, friendsData]) => {
-        setStats(statsData);
-        setFriendList(friendsData);
-      })
-      .catch(console.error)
-      .finally(() => setLoading(false));
-  }, [location.pathname]);
+    games.stats().then(setStats).catch(console.error);
+    friends.list().then(setFriendList).catch(console.error);
+    const done = setTimeout(() => setLoading(false), 2000);
+    return () => clearTimeout(done);
+  }, []);
 
   const handleViewFriendLib = async (friendId) => {
     try {
@@ -78,6 +74,20 @@ function Dashboard({ user }) {
       console.error(err);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="page">
+        <div className="page-header">
+          <div>
+            <h1 className="page-title">Dashboard</h1>
+            <p className="page-subtitle">Welcome back, {user.username}</p>
+          </div>
+        </div>
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
 
   return (
     <div className="page">
