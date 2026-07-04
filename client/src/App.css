@@ -1681,8 +1681,14 @@ a {
 .form-input {
   padding: 0.5rem; border-radius: 6px; border: 1px solid var(--border);
   background: var(--card-bg); color: var(--text); font-size: 0.85rem;
+  outline: none; transition: border-color 0.15s;
 }
 .form-input { cursor: text; }
+.form-select:focus,
+.form-input:focus { border-color: var(--primary); }
+.input { padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface); color: var(--text); font-size: 0.875rem; outline: none; transition: border-color 0.15s; }
+.input:focus { border-color: var(--primary); }
+select.input { width: 100%; }
 .avatar-deco-wrapper {
   position: relative;
   display: inline-flex;

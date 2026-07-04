@@ -318,7 +318,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
           <div className="card-header"><h2>Profile Theme</h2></div>
           <div className="card-body">
             <p className="setting-desc">Choose a theme that others see when visiting your profile. Leave empty to use your current theme.</p>
-            <select className="input" value={profileTheme || ""} onChange={(e) => handleProfileTheme(e.target.value)}>
+            <select className="form-select" value={profileTheme || ""} onChange={(e) => handleProfileTheme(e.target.value)}>
               <option value="">Same as my theme</option>
               {THEMES.filter((t) => isUnlocked(t.id)).map((t) => (
                 <option key={t.id} value={t.id}>{t.name}</option>
@@ -332,7 +332,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
           <div className="card-body">
             <div className="setting-row">
               <span className="setting-label">Font Size</span>
-              <select className="input" value={fontSize} onChange={(e) => handleFontSize(e.target.value)} style={{ width: "auto" }}>
+              <select className="form-select" value={fontSize} onChange={(e) => handleFontSize(e.target.value)}>
                 <option value="small">Small</option>
                 <option value="normal">Normal</option>
                 <option value="large">Large</option>
@@ -340,7 +340,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
             </div>
             <div className="setting-row">
               <span className="setting-label">Density</span>
-              <select className="input" value={density} onChange={(e) => handleDensity(e.target.value)} style={{ width: "auto" }}>
+              <select className="form-select" value={density} onChange={(e) => handleDensity(e.target.value)}>
                 <option value="compact">Compact</option>
                 <option value="normal">Normal</option>
                 <option value="comfortable">Comfortable</option>
@@ -360,10 +360,10 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
           <div className="card-header"><h2>Video Background</h2></div>
           <div className="card-body">
             <p className="setting-desc">Paste a URL to a video (MP4/WebM) to use as your page background instead of gradients/images.</p>
-            <input type="text" className="input" value={bgVideo || ""} onChange={(e) => handleBgVideo(e.target.value)} placeholder="https://example.com/video.mp4" />
+            <input type="text" className="form-input" value={bgVideo || ""} onChange={(e) => handleBgVideo(e.target.value)} placeholder="https://example.com/video.mp4" />
             <div className="setting-row" style={{ marginTop: "0.5rem" }}>
               <span className="setting-label">Background Type</span>
-              <select className="input" value={bgType} onChange={(e) => handleBgType(e.target.value)} style={{ width: "auto" }}>
+              <select className="form-select" value={bgType} onChange={(e) => handleBgType(e.target.value)}>
                 <option value="gradient">Gradient</option>
                 <option value="image">Image/Upload</option>
                 <option value="video">Video</option>
