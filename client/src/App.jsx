@@ -1,0 +1,128 @@
+import { useState, useEffect } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { auth } from "./api";
+import config from "./config";
+import Navbar from "./components/Navbar";
+import Login from "./pages/Login";
+import Dashboard from "./pages/Dashboard";
+import Collection from "./pages/Collection";
+import SteamPage from "./pages/SteamPage";
+import Settings from "./pages/Settings";
+import Appearance from "./pages/Appearance";
+import Profile from "./pages/Profile";
+import GameDetail from "./pages/GameDetail";
+import Chat from "./pages/Chat";
+import UpdateDialog from "./components/UpdateDialog";
+import { ToastProvider } from "./components/Toast";
+import useKeyboardShortcuts, { useShortcut } from "./hooks/useKeyboardShortcuts";
+
+function App() {
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [updateInfo, setUpdateInfo] = useState(null);
+  const [bgValue, setBgValue] = useState(() => localStorage.getItem("bg") || "");
+  const [shortcutsEnabled, setShortcutsEnabled] = useState(() => localStorage.getItem("shortcuts") !== "false");
+  const navigate = useNavigate();
+
+  useKeyboardShortcuts(shortcutsEnabled);
+  useShortcut("search", () => { const s = document.querySelector(".search-input"); if (s) s.focus(); });
+  useShortcut("close", () => { const m = document.querySelector(".modal-overlay"); if (m) m.click(); });
+
+  useEffect(() => {
+    document.documentElement.setAttribute("data-theme", localStorage.getItem("theme") || "light");
+    const bg = localStorage.getItem("bg");
+    if (bg) {
+      document.documentElement.setAttribute("data-bg", bg.startsWith("/uploads") ? "custom" : bg);
+      setBgValue(bg);
+    }
+
+    const token = localStorage.getItem("token");
+    if (token) {
+      auth
+        .me()
+        .then((u) => setUser(u))
+        .catch(() => localStorage.removeItem("token"))
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!loading && user && window.electronAPI?.isElectron) {
+      const snoozed = localStorage.getItem("update-snoozed");
+      window.electronAPI.checkUpdate(config.SERVER_URL).then((result) => {
+        if (result.available && result.version !== snoozed) {
+          setUpdateInfo(result);
+        }
+      });
+    }
+  }, [loading, user]);
+
+  const handleLogin = (token, userData) => {
+    localStorage.setItem("token", token);
+    setUser(userData);
+    navigate("/");
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setUser(null);
+    navigate("/login");
+  };
+
+  const handleCheckUpdate = async () => {
+    if (!window.electronAPI) return;
+    const result = await window.electronAPI.checkUpdate(config.SERVER_URL);
+    if (result.available) {
+      setUpdateInfo(result);
+    } else {
+      alert("You have the latest version!");
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="loading-screen">
+        <div className="loading-spinner" />
+      </div>
+    );
+  }
+
+  if (!user) {
+    return <Login onLogin={handleLogin} />;
+  }
+
+  const bgClass = bgValue.startsWith("/uploads") ? "bg-custom" : bgValue ? `bg-${bgValue}` : "";
+
+  return (
+    <ToastProvider>
+    <div className="app">
+      {bgClass && <div className={`page-bg ${bgClass}`} style={bgValue.startsWith("/uploads") ? { backgroundImage: `url(${config.SERVER_URL}${bgValue})` } : {}} />}
+      <Navbar user={user} onLogout={handleLogout} />
+      <main className="main-content">
+        <Routes>
+          <Route path="/" element={<Dashboard user={user} />} />
+          <Route path="/collection" element={<Collection />} />
+          <Route path="/steam" element={<SteamPage />} />
+          <Route path="/settings" element={<Settings user={user} onCheckUpdate={handleCheckUpdate} onUserUpdate={setUser} />} />
+          <Route path="/appearance" element={<Appearance user={user} onUserUpdate={setUser} onBgUpdate={setBgValue} />} />
+          <Route path="/profile/:id" element={<Profile user={user} />} />
+          <Route path="/game/:id" element={<GameDetail />} />
+          <Route path="/profile" element={<Navigate to={`/profile/${user.id}`} />} />
+          <Route path="/chat" element={<Chat user={user} />} />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </main>
+      {updateInfo && (
+        <UpdateDialog
+          updateInfo={updateInfo}
+          onClose={() => setUpdateInfo(null)}
+        />
+      )}
+    </div>
+    </ToastProvider>
+  );
+}
+
+export default App;

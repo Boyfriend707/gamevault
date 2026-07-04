@@ -1,0 +1,8 @@
+version: 1.0.0
+files:
+  - url: GameVault-Setup-1.0.0.exe
+    sha512: placeholder
+    size: 0
+path: GameVault-Setup-1.0.0.exe
+sha512: placeholder
+releaseDate: "2026-07-02T21:00:00.000Z"

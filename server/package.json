@@ -1,0 +1,30 @@
+{
+  "name": "gamevault-server",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js",
+    "start:prod": "cross-env NODE_ENV=production node src/index.js",
+    "build:client": "cd ../client && npm run build",
+    "db:push": "npx prisma db push",
+    "db:studio": "npx prisma studio",
+    "db:generate": "npx prisma generate",
+    "db:seed": "node prisma/seed.js",
+    "postinstall": "npx prisma generate && npx prisma db push"
+  },
+  "dependencies": {
+    "@prisma/client": "^6.6.0",
+    "axios": "^1.7.9",
+    "bcrypt": "^5.1.1",
+    "cloudinary": "^2.10.0",
+    "cors": "^2.8.5",
+    "cross-env": "^10.1.0",
+    "dotenv": "^16.4.7",
+    "express": "^4.21.2",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.2.0",
+    "prisma": "^6.6.0"
+  }
+}

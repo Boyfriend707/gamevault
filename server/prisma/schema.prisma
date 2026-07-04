@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  username  String   @unique
+  displayName String?
+  password  String
+  avatarUrl String?
+  decorationUrl String?
+  bannerUrl String?
+  bio       String?
+  status    String?
+  accentColor String?
+  bannerCrop String?
+  role      String   @default("user")
+  xp        Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  sentRequests     FriendRequest[]  @relation("SentRequests")
+  receivedRequests FriendRequest[]  @relation("ReceivedRequests")
+  friendships      Friendship[]     @relation("UserFriendships")
+  friendedBy       Friendship[]     @relation("FriendOf")
+  games            Game[]
+  tags             Tag[]
+  steamLink        SteamLink?
+  settings         Settings?
+  conversations    ConversationParticipant[]
+  messages         Message[]
+  notifications    Notification[]
+  sessions         PlaySession[]
+}
+
+model Conversation {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  participants ConversationParticipant[]
+  messages     Message[]
+}
+
+model ConversationParticipant {
+  conversationId Int
+  userId         Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@id([conversationId, userId])
+}
+
+model Message {
+  id             Int      @id @default(autoincrement())
+  content        String
+  createdAt      DateTime @default(now())
+  conversationId Int
+  userId         Int
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id])
+}
+
+model FriendRequest {
+  id        Int      @id @default(autoincrement())
+  status    String   @default("pending")
+  createdAt DateTime @default(now())
+
+  senderId   Int
+  receiverId Int
+  sender     User @relation("SentRequests", fields: [senderId], references: [id])
+  receiver   User @relation("ReceivedRequests", fields: [receiverId], references: [id])
+
+  @@unique([senderId, receiverId])
+}
+
+model Friendship {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+
+  userId   Int
+  friendId Int
+  user     User @relation("UserFriendships", fields: [userId], references: [id])
+  friend   User @relation("FriendOf", fields: [friendId], references: [id])
+
+  @@unique([userId, friendId])
+}
+
+model Game {
+  id        Int      @id @default(autoincrement())
+  name      String
+  platform  String
+  notes     String?
+  coverUrl  String?
+  localPath   String?
+  steamAppId  Int?
+  playtime    Int      @default(0)
+  status      String   @default("not-playing")
+  pinned      Boolean  @default(false)
+  rating      Int?
+  review      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  userId Int
+  user   User   @relation(fields: [userId], references: [id])
+  tags   GameTag[]
+  sessions PlaySession[]
+}
+
+model Tag {
+  id        Int      @id @default(autoincrement())
+  name      String
+  createdAt DateTime @default(now())
+
+  userId Int
+  user   User   @relation(fields: [userId], references: [id])
+  games  GameTag[]
+
+  @@unique([name, userId])
+}
+
+model GameTag {
+  gameId Int
+  tagId  Int
+  game   Game @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([gameId, tagId])
+}
+
+model SteamLink {
+  id           Int       @id @default(autoincrement())
+  steamId      String    @unique
+  displayName  String?
+  avatarUrl    String?
+  profileUrl   String?
+  onlineStatus Int?      @default(0)
+  syncCount    Int       @default(0)
+  lastSynced   DateTime?
+  createdAt    DateTime  @default(now())
+
+  userId Int    @unique
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model Settings {
+  id              Int      @id @default(autoincrement())
+  theme           String   @default("light")
+  unlockedThemes  String   @default("[]")
+  completedGoals  String   @default("[]")
+  background      String?
+  shortcuts       String   @default("{\"enabled\":true,\"bindings\":{}}")
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  userId Int    @unique
+  user   User   @relation(fields: [userId], references: [id])
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String   // friend_request, friend_accepted, goal_completed, new_message
+  title     String
+  body      String?
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model PlaySession {
+  id        Int      @id @default(autoincrement())
+  gameId    Int
+  userId    Int
+  minutes   Int      @default(0)
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Decoration {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  fileUrl   String
+  createdAt DateTime @default(now())
+}
