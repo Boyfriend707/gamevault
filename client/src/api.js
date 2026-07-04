@@ -105,6 +105,7 @@ export const friends = {
     request(`/friends/requests/${id}/decline`, { method: "POST" }),
   list: () => request("/friends"),
   getProfile: (id) => request(`/friends/${id}/profile`),
+  leaderboard: () => request("/friends/leaderboard"),
 };
 
 export const games = {
@@ -136,6 +137,33 @@ export const games = {
       body: formData,
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });
+  },
+  random: () => request("/games/random"),
+  servers: {
+    list: (id) => request(`/games/${id}/servers`),
+    add: (id, data) => request(`/games/${id}/servers`, { method: "POST", body: JSON.stringify(data) }),
+    delete: (serverId) => request(`/games/servers/${serverId}`, { method: "DELETE" }),
+    check: (host, port) => request("/games/server-status", { method: "POST", body: JSON.stringify({ host, port }) }),
+  },
+  screenshots: {
+    list: (id) => request(`/games/${id}/screenshots`),
+    upload: (id, file) => {
+      const formData = new FormData();
+      formData.append("screenshot", file);
+      const token = localStorage.getItem("token");
+      return request(`/games/${id}/screenshots`, {
+        method: "POST",
+        body: formData,
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+    },
+    delete: (screenshotId) => request(`/games/screenshots/${screenshotId}`, { method: "DELETE" }),
+  },
+  milestones: {
+    list: (id) => request(`/games/${id}/milestones`),
+    create: (id, title) => request(`/games/${id}/milestones`, { method: "POST", body: JSON.stringify({ title }) }),
+    toggle: (milestoneId) => request(`/games/milestones/${milestoneId}`, { method: "PUT" }),
+    delete: (milestoneId) => request(`/games/milestones/${milestoneId}`, { method: "DELETE" }),
   },
 };
 
@@ -179,6 +207,7 @@ export const decorations = {
 
 export const users = {
   getProfile: (id) => request(`/users/${id}/profile`),
+  getMilestones: (id) => request(`/users/${id}/milestones`),
 };
 
 export const chats = {
@@ -192,6 +221,14 @@ export const notificationsApi = {
   list: () => request("/notifications"),
   markRead: (id) => request(`/notifications/${id}/read`, { method: "PUT" }),
   markAllRead: () => request("/notifications/read-all", { method: "PUT" }),
+};
+
+export const challenges = {
+  list: () => request("/challenges"),
+  create: (data) => request("/challenges", { method: "POST", body: JSON.stringify(data) }),
+  join: (id) => request(`/challenges/${id}/join`, { method: "POST" }),
+  get: (id) => request(`/challenges/${id}`),
+  check: (id) => request(`/challenges/${id}/check`, { method: "POST" }),
 };
 
 export const settings = {

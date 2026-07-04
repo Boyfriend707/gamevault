@@ -2,9 +2,33 @@ import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import { authenticateToken } from "../middleware/auth.js";
 import { awardXP } from "../xp.js";
+import multer from "multer";
+import { v2 as cloudinary } from "cloudinary";
+import net from "net";
 
 const router = Router();
 const prisma = new PrismaClient();
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 8 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    cb(null, file.mimetype.startsWith("image/"));
+  },
+});
+
+function uploadToCloudinary(buffer, publicId, opts = {}) {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { public_id: publicId, resource_type: "image", ...opts },
+      (error, result) => {
+        if (error) reject(error);
+        else resolve(result.secure_url);
+      }
+    );
+    stream.end(buffer);
+  });
+}
 
 router.use(authenticateToken);
 
@@ -92,6 +116,29 @@ router.get("/stats", async (req, res) => {
   }
 });
 
+router.get("/random", async (req, res) => {
+  try {
+    const where = { userId: req.userId };
+    if (req.query.status) {
+      where.status = req.query.status;
+    }
+
+    const count = await prisma.game.count({ where });
+    if (count === 0) return res.json(null);
+
+    const skip = Math.floor(Math.random() * count);
+    const game = await prisma.game.findFirst({
+      where,
+      skip,
+      include: { tags: { include: { tag: true } } },
+    });
+
+    res.json(game);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to pick random game" });
+  }
+});
+
 router.get("/pinned", async (req, res) => {
   try {
     const games = await prisma.game.findMany({
@@ -102,6 +149,203 @@ router.get("/pinned", async (req, res) => {
     res.json(games);
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch pinned games" });
+  }
+});
+
+router.post("/server-status", async (req, res) => {
+  try {
+    const { host, port } = req.body;
+    if (!host || !port) {
+      return res.status(400).json({ error: "Host and port required" });
+    }
+
+    const online = await new Promise((resolve) => {
+      const socket = new net.Socket();
+      socket.setTimeout(5000);
+      socket.on("connect", () => {
+        socket.destroy();
+        resolve(true);
+      });
+      socket.on("error", () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.on("timeout", () => {
+        socket.destroy();
+        resolve(false);
+      });
+      socket.connect(parseInt(port), host);
+    });
+
+    res.json({ online });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to check server status" });
+  }
+});
+
+router.get("/:id/servers", async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const game = await prisma.game.findFirst({ where: { id: gameId, userId: req.userId } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const servers = await prisma.gameServer.findMany({ where: { gameId } });
+    res.json(servers);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch servers" });
+  }
+});
+
+router.post("/:id/servers", async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const game = await prisma.game.findFirst({ where: { id: gameId, userId: req.userId } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const { host, port, label } = req.body;
+    if (!host || !port) return res.status(400).json({ error: "Host and port required" });
+
+    const server = await prisma.gameServer.create({
+      data: { gameId, host, port: parseInt(port), label },
+    });
+
+    res.status(201).json(server);
+  } catch (error) {
+    if (error.code === "P2002") return res.status(409).json({ error: "Server already exists" });
+    res.status(500).json({ error: "Failed to add server" });
+  }
+});
+
+router.delete("/servers/:serverId", async (req, res) => {
+  try {
+    const serverId = parseInt(req.params.serverId);
+    const server = await prisma.gameServer.findUnique({ where: { id: serverId } });
+    if (!server) return res.status(404).json({ error: "Server not found" });
+
+    const game = await prisma.game.findFirst({ where: { id: server.gameId, userId: req.userId } });
+    if (!game) return res.status(403).json({ error: "Not authorized" });
+
+    await prisma.gameServer.delete({ where: { id: serverId } });
+    res.json({ message: "Server deleted" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete server" });
+  }
+});
+
+router.get("/:id/screenshots", async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const game = await prisma.game.findFirst({ where: { id: gameId, userId: req.userId } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const screenshots = await prisma.gameScreenshot.findMany({
+      where: { gameId },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(screenshots);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch screenshots" });
+  }
+});
+
+router.post("/:id/screenshots", upload.single("screenshot"), async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const game = await prisma.game.findFirst({ where: { id: gameId, userId: req.userId } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+    if (!req.file) return res.status(400).json({ error: "No file uploaded" });
+
+    const url = await uploadToCloudinary(req.file.buffer, `screenshot-${req.userId}-${Date.now()}`, { folder: "screenshots" });
+
+    const screenshot = await prisma.gameScreenshot.create({
+      data: { gameId, userId: req.userId, url, caption: req.body.caption || "" },
+    });
+
+    res.status(201).json(screenshot);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to upload screenshot" });
+  }
+});
+
+router.delete("/screenshots/:screenshotId", async (req, res) => {
+  try {
+    const screenshotId = parseInt(req.params.screenshotId);
+    const screenshot = await prisma.gameScreenshot.findUnique({ where: { id: screenshotId } });
+    if (!screenshot) return res.status(404).json({ error: "Screenshot not found" });
+    if (screenshot.userId !== req.userId) return res.status(403).json({ error: "Not authorized" });
+
+    const publicId = screenshot.url.split("/").pop().replace(/\.[^.]+$/, "");
+    await cloudinary.uploader.destroy(publicId).catch(() => {});
+
+    await prisma.gameScreenshot.delete({ where: { id: screenshotId } });
+    res.json({ message: "Screenshot deleted" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete screenshot" });
+  }
+});
+
+router.get("/:id/milestones", async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const game = await prisma.game.findFirst({ where: { id: gameId, userId: req.userId } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const milestones = await prisma.gameMilestone.findMany({
+      where: { gameId, userId: req.userId },
+      orderBy: { createdAt: "desc" },
+    });
+    res.json(milestones);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch milestones" });
+  }
+});
+
+router.post("/:id/milestones", async (req, res) => {
+  try {
+    const gameId = parseInt(req.params.id);
+    const game = await prisma.game.findFirst({ where: { id: gameId, userId: req.userId } });
+    if (!game) return res.status(404).json({ error: "Game not found" });
+
+    const { title } = req.body;
+    if (!title?.trim()) return res.status(400).json({ error: "Title is required" });
+
+    const milestone = await prisma.gameMilestone.create({
+      data: { gameId, userId: req.userId, title: title.trim() },
+    });
+
+    res.status(201).json(milestone);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to create milestone" });
+  }
+});
+
+router.put("/milestones/:milestoneId", async (req, res) => {
+  try {
+    const milestoneId = parseInt(req.params.milestoneId);
+    const milestone = await prisma.gameMilestone.findUnique({ where: { id: milestoneId } });
+    if (!milestone || milestone.userId !== req.userId) return res.status(404).json({ error: "Milestone not found" });
+
+    const updated = await prisma.gameMilestone.update({
+      where: { id: milestoneId },
+      data: { completed: !milestone.completed },
+    });
+
+    res.json(updated);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to toggle milestone" });
+  }
+});
+
+router.delete("/milestones/:milestoneId", async (req, res) => {
+  try {
+    const milestoneId = parseInt(req.params.milestoneId);
+    const milestone = await prisma.gameMilestone.findUnique({ where: { id: milestoneId } });
+    if (!milestone || milestone.userId !== req.userId) return res.status(404).json({ error: "Milestone not found" });
+
+    await prisma.gameMilestone.delete({ where: { id: milestoneId } });
+    res.json({ message: "Milestone deleted" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete milestone" });
   }
 });
 
@@ -147,19 +391,6 @@ router.put("/:id", async (req, res) => {
     res.json(updated);
   } catch (error) {
     res.status(500).json({ error: "Failed to update game" });
-  }
-});
-
-router.get("/pinned", async (req, res) => {
-  try {
-    const games = await prisma.game.findMany({
-      where: { userId: req.userId, pinned: true },
-      include: { tags: { include: { tag: true } } },
-      orderBy: { updatedAt: "desc" },
-    });
-    res.json(games);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch pinned games" });
   }
 });
 

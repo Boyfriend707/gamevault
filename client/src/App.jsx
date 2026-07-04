@@ -11,6 +11,7 @@ import Settings from "./pages/Settings";
 import Appearance from "./pages/Appearance";
 import Profile from "./pages/Profile";
 import GameDetail from "./pages/GameDetail";
+import Challenges from "./pages/Challenges";
 import Chat from "./pages/Chat";
 import UpdateDialog from "./components/UpdateDialog";
 import { ToastProvider } from "./components/Toast";
@@ -130,6 +131,7 @@ function App() {
           <Route path="/profile/:id" element={<Profile user={user} />} />
           <Route path="/game/:id" element={<GameDetail />} />
           <Route path="/profile" element={<Navigate to={`/profile/${user.id}`} />} />
+          <Route path="/challenges" element={<Challenges />} />
           <Route path="/chat" element={<Chat user={user} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, Edit3, Save, X, Tag } from "lucide-react";
+import { ArrowLeft, Clock, Edit3, Save, X, Tag, Plus, Trash2, RefreshCw, Image, CheckSquare, Square, Upload } from "lucide-react";
 import { games, tags as tagsApi } from "../api";
 
 const STATUSES = ["not-playing", "playing", "completed", "dropped"];
@@ -15,6 +15,15 @@ function GameDetail() {
   const [form, setForm] = useState({});
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
+  const [servers, setServers] = useState([]);
+  const [screenshots, setScreenshots] = useState([]);
+  const [milestones, setMilestones] = useState([]);
+  const [newServerHost, setNewServerHost] = useState("");
+  const [newServerPort, setNewServerPort] = useState("");
+  const [newServerLabel, setNewServerLabel] = useState("");
+  const [serverStatuses, setServerStatuses] = useState({});
+  const [newMilestoneTitle, setNewMilestoneTitle] = useState("");
+  const [enlargeScreenshot, setEnlargeScreenshot] = useState(null);
 
   useEffect(() => {
     games.getById(id).then((g) => {
@@ -24,6 +33,9 @@ function GameDetail() {
     }).catch(() => navigate("/collection"));
     tagsApi.list().then(setAllTags).catch(console.error);
     games.getSessions(id).then(setSessions).catch(console.error);
+    games.servers.list(id).then(setServers).catch(console.error);
+    games.screenshots.list(id).then(setScreenshots).catch(console.error);
+    games.milestones.list(id).then(setMilestones).catch(console.error);
   }, [id]);
 
   const handleSave = async () => {
@@ -31,6 +43,89 @@ function GameDetail() {
       const updated = await games.update(id, form);
       setGame(updated);
       setEditing(false);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleCheckServer = async (host, port) => {
+    try {
+      const result = await games.servers.check(host, port);
+      setServerStatuses((prev) => ({ ...prev, [`${host}:${port}`]: result.online }));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddServer = async (e) => {
+    e.preventDefault();
+    try {
+      await games.servers.add(id, { host: newServerHost, port: parseInt(newServerPort), label: newServerLabel });
+      const updated = await games.servers.list(id);
+      setServers(updated);
+      setNewServerHost("");
+      setNewServerPort("");
+      setNewServerLabel("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteServer = async (serverId) => {
+    try {
+      await games.servers.delete(serverId);
+      setServers(servers.filter((s) => s.id !== serverId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleAddMilestone = async () => {
+    if (!newMilestoneTitle.trim()) return;
+    try {
+      const m = await games.milestones.create(id, newMilestoneTitle.trim());
+      setMilestones([m, ...milestones]);
+      setNewMilestoneTitle("");
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleToggleMilestone = async (milestoneId) => {
+    try {
+      const updated = await games.milestones.toggle(milestoneId);
+      setMilestones(milestones.map((m) => (m.id === milestoneId ? updated : m)));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDeleteMilestone = async (milestoneId) => {
+    try {
+      await games.milestones.delete(milestoneId);
+      setMilestones(milestones.filter((m) => m.id !== milestoneId));
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleUploadScreenshot = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      await games.screenshots.upload(id, file);
+      const updated = await games.screenshots.list(id);
+      setScreenshots(updated);
+    } catch (err) {
+      console.error(err);
+    }
+    e.target.value = "";
+  };
+
+  const handleDeleteScreenshot = async (screenshotId) => {
+    try {
+      await games.screenshots.delete(screenshotId);
+      setScreenshots(screenshots.filter((s) => s.id !== screenshotId));
     } catch (err) {
       console.error(err);
     }
@@ -164,6 +259,94 @@ function GameDetail() {
             <p>{game.review}</p>
           </div>
         )}
+      </div>
+
+      <div className="game-detail-card">
+        <h3>Server Status</h3>
+        {servers.length > 0 && (
+          <div className="server-list">
+            {servers.map((server) => (
+              <div key={server.id} className="server-row">
+                <div className="server-info">
+                  <span className="server-label">{server.label || `${server.host}:${server.port}`}</span>
+                  <span className="server-address">{server.host}:{server.port}</span>
+                  {serverStatuses[`${server.host}:${server.port}`] !== undefined && (
+                    <span className={`server-status-badge ${serverStatuses[`${server.host}:${server.port}`] ? "server-online" : "server-offline"}`}>
+                      {serverStatuses[`${server.host}:${server.port}`] ? "Online" : "Offline"}
+                    </span>
+                  )}
+                </div>
+                <div className="server-actions">
+                  <button className="btn-icon" onClick={() => handleCheckServer(server.host, server.port)} title="Check status">
+                    <RefreshCw size={14} />
+                  </button>
+                  <button className="btn-icon btn-icon-danger" onClick={() => handleDeleteServer(server.id)} title="Remove">
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        <form className="server-add-form" onSubmit={handleAddServer}>
+          <input type="text" value={newServerLabel} onChange={(e) => setNewServerLabel(e.target.value)} placeholder="Label (optional)" className="form-input" />
+          <input type="text" value={newServerHost} onChange={(e) => setNewServerHost(e.target.value)} placeholder="Host" required className="form-input" />
+          <input type="number" value={newServerPort} onChange={(e) => setNewServerPort(e.target.value)} placeholder="Port" required className="form-input" style={{ width: 100 }} />
+          <button type="submit" className="btn btn-primary btn-sm"><Plus size={14} /> Add</button>
+        </form>
+      </div>
+
+      <div className="game-detail-card">
+        <h3>Screenshots</h3>
+        <div className="screenshot-grid">
+          {screenshots.map((s) => (
+            <div key={s.id} className="screenshot-item">
+              <img src={s.url} alt={s.caption || ""} className="screenshot-thumb" onClick={() => setEnlargeScreenshot(s)} />
+              <button className="btn-icon btn-icon-danger screenshot-delete" onClick={() => handleDeleteScreenshot(s.id)} title="Delete">
+                <Trash2 size={12} />
+              </button>
+            </div>
+          ))}
+          <label className="screenshot-upload-btn">
+            <Upload size={24} />
+            <input type="file" accept="image/*" onChange={handleUploadScreenshot} hidden />
+          </label>
+        </div>
+      </div>
+
+      {enlargeScreenshot && (
+        <div className="modal-overlay" onClick={() => setEnlargeScreenshot(null)}>
+          <div className="screenshot-modal" onClick={(e) => e.stopPropagation()}>
+            <img src={enlargeScreenshot.url} alt={enlargeScreenshot.caption || ""} className="screenshot-enlarged" />
+            {enlargeScreenshot.caption && <p className="screenshot-caption">{enlargeScreenshot.caption}</p>}
+            <button className="btn-icon screenshot-modal-close" onClick={() => setEnlargeScreenshot(null)}><X size={18} /></button>
+          </div>
+        </div>
+      )}
+
+      <div className="game-detail-card">
+        <h3>Milestones</h3>
+        <div className="milestone-input-row">
+          <input type="text" value={newMilestoneTitle} onChange={(e) => setNewMilestoneTitle(e.target.value)} placeholder="New milestone..." className="form-input" onKeyDown={(e) => e.key === "Enter" && handleAddMilestone()} />
+          <button className="btn btn-primary btn-sm" onClick={handleAddMilestone}><Plus size={14} /></button>
+        </div>
+        <div className="milestone-list">
+          {milestones.length === 0 ? (
+            <p className="empty-text">No milestones yet.</p>
+          ) : (
+            milestones.map((m) => (
+              <div key={m.id} className={`milestone-row ${m.completed ? "milestone-completed" : ""}`}>
+                <button className="btn-icon" onClick={() => handleToggleMilestone(m.id)}>
+                  {m.completed ? <CheckSquare size={16} /> : <Square size={16} />}
+                </button>
+                <span className="milestone-title">{m.title}</span>
+                <button className="btn-icon btn-icon-danger" onClick={() => handleDeleteMilestone(m.id)}>
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   );

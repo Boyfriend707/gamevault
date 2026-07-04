@@ -29,39 +29,46 @@ if ($SkipExe) {
 
 Write-Host "=== GameVault Deploy v$Version ===" -ForegroundColor Cyan
 
-# 2. Build frontend
-Write-Host "`n[1/4] Building frontend..." -ForegroundColor Green
+# 2. Update package.json version
+Write-Host "`n[1/5] Updating package.json version..." -ForegroundColor Green
+$pkgContent = Get-Content "$root\client\package.json" -Raw
+$pkgContent = $pkgContent -replace '"version":\s*".*?"', "`"version`": `"$Version`""
+[System.IO.File]::WriteAllText("$root\client\package.json", $pkgContent)
+
+# 3. Build frontend
+Write-Host "`n[2/5] Building frontend..." -ForegroundColor Green
 Set-Location "$root\client"
 npm run build
 if (-not $?) { throw "Frontend build failed" }
 
-# 3. Build .exe (unless skipped)
+# 4. Build .exe (unless skipped)
 if ($SkipExe) {
-  Write-Host "`n[2/4] Skipping .exe build (-SkipExe)" -ForegroundColor Yellow
+  Write-Host "`n[3/5] Skipping .exe build (-SkipExe)" -ForegroundColor Yellow
+  # Keep existing installer name from version.json
 } else {
-  Write-Host "`n[2/4] Building .exe installer..." -ForegroundColor Green
+  Write-Host "`n[3/5] Building .exe installer..." -ForegroundColor Green
   npm run electron:build
   if (-not $?) { throw "Electron build failed" }
 
-  Write-Host "`n[3/4] Copying installer to updates..." -ForegroundColor Green
-  $installer = "GameVault-Setup-$Version.exe"
+  Write-Host "`n[4/5] Copying installer to updates..." -ForegroundColor Green
+  $installer = "GameVault Setup $Version.exe"
   Copy-Item "release\$installer" "$root\server\updates\$installer" -Force
 }
 
-# 4. Update version.json
-Write-Host "`n[4/4] Updating version.json..." -ForegroundColor Green
+# 5. Update version.json
+Write-Host "`n[5/5] Updating version.json..." -ForegroundColor Green
 $versionJson = @{
   version   = $Version
   installer = $installer
   notes     = $Notes
 } | ConvertTo-Json
-Set-Content "$root\server\updates\version.json" $versionJson -Encoding UTF8
+[System.IO.File]::WriteAllText("$root\server\updates\version.json", $versionJson)
 
-# 5. Commit and push
+# 6. Commit and push
 Write-Host "Committing and pushing..." -ForegroundColor Green
 Set-Location $root
 git add -A
-$msg = if ($Notes -ne "") { "v$Version — $Notes" } else { "v$Version" }
+$msg = if ($Notes -ne "") { "v$Version - $Notes" } else { "v$Version" }
 git commit -m $msg
 git push
 

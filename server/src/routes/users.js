@@ -54,4 +54,25 @@ router.get("/:id/profile", authenticateToken, async (req, res) => {
   }
 });
 
+router.get("/:id/milestones", authenticateToken, async (req, res) => {
+  try {
+    const profileId = parseInt(req.params.id);
+
+    const milestones = await prisma.gameMilestone.findMany({
+      where: {
+        userId: profileId,
+        completed: true,
+      },
+      include: {
+        game: { select: { id: true, name: true, coverUrl: true } },
+      },
+      orderBy: { createdAt: "desc" },
+    });
+
+    res.json(milestones);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch milestones" });
+  }
+});
+
 export default router;

@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, Gamepad2, PlayCircle, CheckCircle2, Clock, Timer, Trophy, Pencil, Check, X, MessageSquare, Pin, Zap } from "lucide-react";
-import { users as usersApi, settings as settingsApi, chats as chatsApi } from "../api";
+import { ArrowLeft, Gamepad2, PlayCircle, CheckCircle2, Clock, Timer, Trophy, Pencil, Check, X, MessageSquare, Pin, Zap, CheckSquare } from "lucide-react";
+import { users as usersApi, settings as settingsApi, chats as chatsApi, games as gamesApi } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
 import config, { resolveAssetUrl } from "../config";
@@ -17,6 +17,7 @@ function Profile({ user: currentUser }) {
   const [bioText, setBioText] = useState("");
   const [editingDisplayName, setEditingDisplayName] = useState(false);
   const [displayNameText, setDisplayNameText] = useState("");
+  const [milestones, setMilestones] = useState([]);
 
   const isOwn = currentUser?.id === parseInt(id);
 
@@ -27,6 +28,7 @@ function Profile({ user: currentUser }) {
         .then(setProfile)
         .catch(() => { navigate("/"); })
         .finally(() => setLoading(false));
+      usersApi.getMilestones(id).then(setMilestones).catch(console.error);
     }
   }, [id]);
 
@@ -228,6 +230,23 @@ function Profile({ user: currentUser }) {
           </div>
         </div>
       </div>
+
+      {milestones.length > 0 && (
+        <div className="card">
+          <div className="card-header"><h2>Completed Milestones ({milestones.length})</h2></div>
+          <div className="card-body">
+            <div className="milestone-list">
+              {milestones.map((m) => (
+                <div key={m.id} className="milestone-row milestone-completed">
+                  <CheckSquare size={16} />
+                  <span className="milestone-title">{m.title}</span>
+                  <span className="milestone-game">{m.game.name}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

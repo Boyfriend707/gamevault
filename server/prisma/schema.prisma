@@ -36,6 +36,10 @@ model User {
   messages         Message[]
   notifications    Notification[]
   sessions         PlaySession[]
+  gameScreenshots  GameScreenshot[]
+  gameMilestones   GameMilestone[]
+  challengesCreated Challenge[] @relation("ChallengeCreator")
+  challengeParticipants ChallengeParticipant[]
 }
 
 model Conversation {
@@ -111,6 +115,10 @@ model Game {
   user   User   @relation(fields: [userId], references: [id])
   tags   GameTag[]
   sessions PlaySession[]
+  servers    GameServer[]
+  screenshots GameScreenshot[]
+  milestones GameMilestone[]
+  challenges Challenge[]
 }
 
 model Tag {
@@ -183,6 +191,62 @@ model PlaySession {
   createdAt DateTime @default(now())
   game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model GameServer {
+  id    Int    @id @default(autoincrement())
+  gameId Int
+  host  String
+  port  Int
+  label String?
+  game  Game   @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  @@unique([gameId, host, port])
+}
+
+model GameScreenshot {
+  id        Int      @id @default(autoincrement())
+  gameId    Int
+  userId    Int
+  url       String
+  caption   String?  @default("")
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model GameMilestone {
+  id        Int      @id @default(autoincrement())
+  gameId    Int
+  userId    Int
+  title     String
+  completed Boolean  @default(false)
+  createdAt DateTime @default(now())
+  game      Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+}
+
+model Challenge {
+  id        Int      @id @default(autoincrement())
+  creatorId Int
+  gameId    Int
+  name      String
+  startDate DateTime
+  endDate   DateTime
+  createdAt DateTime @default(now())
+  creator   User     @relation("ChallengeCreator", fields: [creatorId], references: [id])
+  game      Game     @relation(fields: [gameId], references: [id])
+  participants ChallengeParticipant[]
+}
+
+model ChallengeParticipant {
+  id          Int      @id @default(autoincrement())
+  challengeId Int
+  userId      Int
+  playtime    Int      @default(0)
+  won         Boolean  @default(false)
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id])
+  @@unique([challengeId, userId])
 }
 
 model Decoration {

@@ -12,7 +12,7 @@ import {
   MessageSquare,
   X,
 } from "lucide-react";
-import { friends, games, chats as chatsApi } from "../api";
+import { friends, games, challenges as challengesApi, chats as chatsApi } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
 
@@ -46,14 +46,27 @@ function Dashboard({ user }) {
   const [showPlaytime, setShowPlaytime] = useState(false);
   const [friendLibrary, setFriendLibrary] = useState(null);
   const [showFriendLib, setShowFriendLib] = useState(false);
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [challengeList, setChallengeList] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     games.stats().then(setStats).catch(console.error);
     friends.list().then(setFriendList).catch(console.error);
+    friends.leaderboard().then(setLeaderboard).catch(console.error);
+    challengesApi.list().then(setChallengeList).catch(console.error);
     const done = setTimeout(() => setLoading(false), 2000);
     return () => clearTimeout(done);
   }, []);
+
+  const handleRandomGame = async () => {
+    try {
+      const result = await games.random();
+      if (result) navigate(`/game/${result.id}`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
 
   const handleViewFriendLib = async (friendId) => {
     try {
@@ -123,6 +136,9 @@ function Dashboard({ user }) {
             <button className="btn btn-secondary" onClick={handleShowPlaytime}>
               <Timer size={16} />
               Playtime Details
+            </button>
+            <button className="btn btn-secondary" onClick={handleRandomGame}>
+              🎲 Random Game
             </button>
           </div>
         </div>
@@ -207,6 +223,52 @@ function Dashboard({ user }) {
           </div>
         </div>
       )}
+
+        <div className="card">
+          <div className="card-header">
+            <h2>Playtime Leaderboard</h2>
+          </div>
+          <div className="card-body">
+            {leaderboard.length === 0 ? (
+              <p className="empty-text">No friends yet.</p>
+            ) : (
+              <ul className="friend-list">
+                {leaderboard.slice(0, 5).map((entry) => (
+                  <li key={entry.user.id} className="friend-item">
+                    <AvatarWithDecoration user={entry.user} size={32} />
+                    <div className="friend-info">
+                      <span className="friend-name">{entry.user.displayName || entry.user.username}</span>
+                    </div>
+                    <span className="playtime-item-value">{formatPlaytime(entry.totalPlaytime)}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h2>Active Challenges</h2>
+          </div>
+          <div className="card-body">
+            {challengeList.length === 0 ? (
+              <p className="empty-text">No active challenges.</p>
+            ) : (
+              <ul className="friend-list">
+                {challengeList.filter((c) => new Date(c.endDate) > new Date()).slice(0, 5).map((c) => (
+                  <li key={c.id} className="friend-item" style={{ cursor: "pointer" }} onClick={() => navigate("/challenges")}>
+                    <div className="friend-info">
+                      <span className="friend-name">{c.name}</span>
+                      <span className="online-status">{c.game.name}</span>
+                    </div>
+                    <span className="playtime-item-value">{c.participants.length} players</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
 
       {showPlaytime && playtimeData && (
         <div className="modal-overlay" onClick={() => setShowPlaytime(false)}>

@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
-  "installer": "GameVault-Setup-1.0.1.exe",
-  "notes": "Persist auth/theme/bg via IPC file store; add retry logic for server wake-up"
+    "installer":  "GameVault Setup 1.1.1.exe",
+    "version":  "1.1.1",
+    "notes":  "7 new features: randomizer, leaderboard, layout/sorting, server status, screenshots, milestones, challenges - plus Dashboard fix"
 }

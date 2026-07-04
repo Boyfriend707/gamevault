@@ -7,6 +7,7 @@ import {
   MessageSquare,
   Settings as SettingsIcon,
   LogOut,
+  Trophy,
 } from "lucide-react";
 import { Zap } from "lucide-react";
 import AvatarWithDecoration from "./AvatarWithDecoration";
@@ -20,6 +21,7 @@ function Navbar({ user, onLogout }) {
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
     { to: "/collection", label: "Collection", icon: Gamepad2 },
     { to: "/steam", label: "Steam", icon: Cloud },
+    { to: "/challenges", label: "Challenges", icon: Trophy },
     { to: "/appearance", label: "Appearance", icon: Palette },
     { to: "/chat", label: "Chat", icon: MessageSquare },
     { to: "/settings", icon: SettingsIcon },

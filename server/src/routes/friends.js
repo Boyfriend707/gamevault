@@ -160,6 +160,41 @@ router.get("/", async (req, res) => {
   }
 });
 
+router.get("/leaderboard", async (req, res) => {
+  try {
+    const friendships = await prisma.friendship.findMany({
+      where: { userId: req.userId },
+      include: {
+        friend: {
+          select: {
+            id: true,
+            username: true,
+            displayName: true,
+            avatarUrl: true,
+            games: { select: { playtime: true } },
+          },
+        },
+      },
+    });
+
+    const leaderboard = friendships
+      .map((f) => ({
+        user: {
+          id: f.friend.id,
+          username: f.friend.username,
+          displayName: f.friend.displayName,
+          avatarUrl: f.friend.avatarUrl,
+        },
+        totalPlaytime: f.friend.games.reduce((sum, g) => sum + g.playtime, 0),
+      }))
+      .sort((a, b) => b.totalPlaytime - a.totalPlaytime);
+
+    res.json(leaderboard);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch leaderboard" });
+  }
+});
+
 router.get("/:id/profile", async (req, res) => {
   try {
     const friendId = parseInt(req.params.id);

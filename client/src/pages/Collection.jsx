@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Edit3, Trash2, Gamepad2, Play, Square, FolderOpen, Clock, Tag, FileText, Pin, X } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, Gamepad2, Play, Square, FolderOpen, Clock, Tag, FileText, Pin, X, Shuffle, LayoutGrid, List } from "lucide-react";
 import { games, tags as tagsApi } from "../api";
 
 const PLATFORMS = ["PC", "PlayStation", "Xbox", "Nintendo", "Mobile", "Other"];
@@ -25,6 +25,8 @@ function Collection() {
   const [form, setForm] = useState({ name: "", platform: "PC", notes: "", status: "not-playing", localPath: "", steamAppId: "", coverUrl: "", tagIds: [] });
   const [notesTarget, setNotesTarget] = useState(null);
   const [notesText, setNotesText] = useState("");
+  const [viewMode, setViewMode] = useState(() => localStorage.getItem("collection-view") || "grid");
+  const [sortBy, setSortBy] = useState(() => localStorage.getItem("collection-sort") || "name");
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -57,12 +59,31 @@ function Collection() {
     }
   };
 
-  const filtered = gameList.filter((g) => {
-    const matchSearch = g.name.toLowerCase().includes(search.toLowerCase());
-    const matchFilter = filter === "All" || g.status === filter;
-    const matchTag = !tagFilter || (g.tags || []).some((gt) => gt.tag.id === tagFilter);
-    return matchSearch && matchFilter && matchTag;
-  });
+  const handleRandomGame = async () => {
+    try {
+      const result = await games.random();
+      if (result) navigate(`/game/${result.id}`);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const filtered = gameList
+    .filter((g) => {
+      const matchSearch = g.name.toLowerCase().includes(search.toLowerCase());
+      const matchFilter = filter === "All" || g.status === filter;
+      const matchTag = !tagFilter || (g.tags || []).some((gt) => gt.tag.id === tagFilter);
+      return matchSearch && matchFilter && matchTag;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name": return a.name.localeCompare(b.name);
+        case "playtime": return b.playtime - a.playtime;
+        case "rating": return (b.rating || -1) - (a.rating || -1);
+        case "recent": return new Date(b.createdAt) - new Date(a.createdAt);
+        default: return 0;
+      }
+    });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -251,6 +272,23 @@ function Collection() {
         <button className="btn btn-secondary btn-sm" onClick={() => setShowTagManager(!showTagManager)} title="Manage tags">
           <Tag size={16} />
         </button>
+        <button className="btn btn-secondary btn-sm" onClick={handleRandomGame} title="Random game">
+          <Shuffle size={16} />
+        </button>
+        <div className="view-toggle">
+          <button className={`btn-icon ${viewMode === "grid" ? "btn-icon-active" : ""}`} onClick={() => { setViewMode("grid"); localStorage.setItem("collection-view", "grid"); }} title="Grid view">
+            <LayoutGrid size={16} />
+          </button>
+          <button className={`btn-icon ${viewMode === "list" ? "btn-icon-active" : ""}`} onClick={() => { setViewMode("list"); localStorage.setItem("collection-view", "list"); }} title="List view">
+            <List size={16} />
+          </button>
+        </div>
+        <select value={sortBy} onChange={(e) => { setSortBy(e.target.value); localStorage.setItem("collection-sort", e.target.value); }} className="filter-select" style={{ width: "auto" }}>
+          <option value="name">Name</option>
+          <option value="playtime">Playtime</option>
+          <option value="rating">Rating</option>
+          <option value="recent">Recent</option>
+        </select>
       </div>
 
       {showTagManager && (
@@ -290,6 +328,46 @@ function Collection() {
             <Plus size={18} />
             Add Your First Game
           </button>
+        </div>
+      ) : viewMode === "list" ? (
+        <div className="game-list-table">
+          <div className="game-list-header">
+            <span className="game-list-th game-list-th-cover"></span>
+            <span className="game-list-th">Name</span>
+            <span className="game-list-th">Platform</span>
+            <span className="game-list-th">Status</span>
+            <span className="game-list-th">Playtime</span>
+            <span className="game-list-th"></span>
+          </div>
+          {filtered.map((game) => {
+            const isTracking = tracking === game.id;
+            const hours = Math.floor(game.playtime / 60);
+            const mins = game.playtime % 60;
+            return (
+              <div key={game.id} className="game-list-row" onClick={() => navigate(`/game/${game.id}`)}>
+                <div className="game-list-cell game-list-cell-cover">
+                  {game.coverUrl ? <img className="game-list-thumb" src={game.coverUrl} alt="" /> : <Gamepad2 size={24} />}
+                </div>
+                <div className="game-list-cell"><span className="game-list-name">{game.name}</span></div>
+                <div className="game-list-cell"><span className="game-list-platform">{game.platform}</span></div>
+                <div className="game-list-cell"><span className={`game-status-badge status-${game.status}`}>{game.status}</span></div>
+                <div className="game-list-cell"><span className="game-list-playtime">{hours > 0 ? `${hours}h ` : ""}{mins}m</span></div>
+                <div className="game-list-cell game-list-cell-actions" onClick={(e) => e.stopPropagation()}>
+                  {(game.localPath || game.steamAppId) && (
+                    <button className={`btn-icon ${isTracking ? "btn-icon-stop" : "btn-icon-play"}`} onClick={() => handleLaunch(game)}>
+                      {isTracking ? <Square size={14} /> : <Play size={14} />}
+                    </button>
+                  )}
+                  <button className={`btn-icon ${game.pinned ? "btn-icon-active" : ""}`} onClick={async () => {
+                    try { await games.togglePin(game.id); fetchGames(); } catch (err) { alert(err.message); }
+                  }}><Pin size={14} /></button>
+                  <button className="btn-icon" onClick={() => { setNotesTarget(game); setNotesText(game.notes || ""); }}><FileText size={14} /></button>
+                  <button className="btn-icon" onClick={() => handleEdit(game)}><Edit3 size={14} /></button>
+                  <button className="btn-icon btn-icon-danger" onClick={() => handleDelete(game.id)}><Trash2 size={14} /></button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       ) : (
         <div className="game-grid">
