@@ -391,7 +391,7 @@ function Collection() {
             return (
               <div key={game.id} className="game-list-row" onClick={() => navigate(`/game/${game.id}`)}>
                 <div className="game-list-cell game-list-cell-cover">
-                  {game.coverUrl ? <img className="game-list-thumb" src={game.coverUrl} alt="" /> : <Gamepad2 size={24} />}
+                  {game.coverUrl ? <img className="game-list-thumb" src={game.coverUrl} alt="" onError={(e) => { e.target.style.display = "none"; }} /> : <Gamepad2 size={24} />}
                 </div>
                 <div className="game-list-cell"><span className="game-list-name">{game.name}</span></div>
                 <div className="game-list-cell"><span className="game-list-platform">{game.platform}</span></div>

@@ -762,10 +762,13 @@ function AdminBadges({ adminToken }) {
   const [showCreateBadge, setShowCreateBadge] = useState(false);
 
   useEffect(() => {
+    if (!adminToken) return;
     adminApi.listBadges(adminToken).then(setBadgeList).catch(() => {});
-  }, []);
+  }, [adminToken]);
 
   const showBadgeMsg = (text) => { setBadgeMessage(text); setTimeout(() => setBadgeMessage(""), 3000); };
+
+  if (!adminToken) return null;
 
   return (
     <div className="admin-decoration-section" style={{ marginTop: "1rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
