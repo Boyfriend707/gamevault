@@ -108,4 +108,70 @@ router.delete("/games/:id", adminAuth, async (req, res) => {
   }
 });
 
+// Badge management
+router.post("/badges", adminAuth, async (req, res) => {
+  try {
+    const { name, description, iconUrl } = req.body;
+    if (!name) return res.status(400).json({ error: "Name is required" });
+    const badge = await prisma.badge.create({
+      data: { name, description, iconUrl, createdById: req.adminId },
+    });
+    res.json(badge);
+  } catch (error) {
+    if (error.code === "P2002") return res.status(400).json({ error: "Badge name already exists" });
+    res.status(500).json({ error: "Failed to create badge" });
+  }
+});
+
+router.get("/badges", adminAuth, async (req, res) => {
+  try {
+    const badges = await prisma.badge.findMany({
+      orderBy: { createdAt: "desc" },
+      include: { _count: { select: { users: true } }, createdBy: { select: { username: true } } },
+    });
+    res.json(badges);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch badges" });
+  }
+});
+
+router.post("/badges/:badgeId/award", adminAuth, async (req, res) => {
+  try {
+    const badgeId = parseInt(req.params.badgeId);
+    const { userId, note } = req.body;
+    if (!userId) return res.status(400).json({ error: "userId is required" });
+    const existing = await prisma.userBadge.findUnique({ where: { userId_badgeId: { userId, badgeId } } });
+    if (existing) return res.status(400).json({ error: "User already has this badge" });
+    const userBadge = await prisma.userBadge.create({
+      data: { userId, badgeId, awardedById: req.adminId, note },
+      include: { badge: true, user: { select: { username: true } } },
+    });
+    res.json(userBadge);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to award badge" });
+  }
+});
+
+router.delete("/badges/:badgeId/award/:userId", adminAuth, async (req, res) => {
+  try {
+    const badgeId = parseInt(req.params.badgeId);
+    const userId = parseInt(req.params.userId);
+    await prisma.userBadge.delete({ where: { userId_badgeId: { userId, badgeId } } });
+    res.json({ message: "Badge revoked" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to revoke badge" });
+  }
+});
+
+router.delete("/badges/:badgeId", adminAuth, async (req, res) => {
+  try {
+    const badgeId = parseInt(req.params.badgeId);
+    await prisma.userBadge.deleteMany({ where: { badgeId } });
+    await prisma.badge.delete({ where: { id: badgeId } });
+    res.json({ message: "Badge deleted" });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to delete badge" });
+  }
+});
+
 export default router;

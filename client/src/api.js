@@ -199,6 +199,17 @@ export const admin = {
     request(`/admin/users/${id}`, { method: "PUT", body: JSON.stringify(data), headers: { Authorization: `Bearer ${token}` } }),
   deleteGame: (gameId, token) =>
     request(`/admin/games/${gameId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
+  // Badges
+  createBadge: (data, token) =>
+    request("/admin/badges", { method: "POST", body: JSON.stringify(data), headers: { Authorization: `Bearer ${token}` } }),
+  listBadges: (token) =>
+    request("/admin/badges", { headers: { Authorization: `Bearer ${token}` } }),
+  awardBadge: (badgeId, userId, note, token) =>
+    request(`/admin/badges/${badgeId}/award`, { method: "POST", body: JSON.stringify({ userId, note }), headers: { Authorization: `Bearer ${token}` } }),
+  revokeBadge: (badgeId, userId, token) =>
+    request(`/admin/badges/${badgeId}/award/${userId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
+  deleteBadge: (badgeId, token) =>
+    request(`/admin/badges/${badgeId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
 };
 
 export const decorations = {

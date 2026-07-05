@@ -579,6 +579,8 @@ const [editingDecoName, setEditingDecoName] = useState("");
                 </div>
               </div>
             )}
+
+            <AdminBadges adminToken={adminToken} />
           </div>
         </div>
 
@@ -640,6 +642,100 @@ const [editingDecoName, setEditingDecoName] = useState("");
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+function AdminBadges({ adminToken }) {
+  const [badgeList, setBadgeList] = useState([]);
+  const [newBadgeName, setNewBadgeName] = useState("");
+  const [newBadgeDesc, setNewBadgeDesc] = useState("");
+  const [newBadgeIcon, setNewBadgeIcon] = useState("");
+  const [awardBadgeId, setAwardBadgeId] = useState(null);
+  const [awardUserId, setAwardUserId] = useState("");
+  const [awardNote, setAwardNote] = useState("");
+  const [badgeMessage, setBadgeMessage] = useState("");
+  const [showCreateBadge, setShowCreateBadge] = useState(false);
+
+  useEffect(() => {
+    adminApi.listBadges(adminToken).then(setBadgeList).catch(() => {});
+  }, []);
+
+  const showBadgeMsg = (text) => { setBadgeMessage(text); setTimeout(() => setBadgeMessage(""), 3000); };
+
+  return (
+    <div className="admin-decoration-section" style={{ marginTop: "1rem", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
+      <h4>Badges</h4>
+      {badgeMessage && <div className="toast toast-success" style={{ marginBottom: "0.5rem" }}>{badgeMessage}</div>}
+
+      <button className="btn btn-sm btn-primary" onClick={() => setShowCreateBadge(!showCreateBadge)} style={{ marginBottom: "0.75rem" }}>
+        {showCreateBadge ? "Cancel" : "Create Badge"}
+      </button>
+
+      {showCreateBadge && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "0.75rem", padding: "0.75rem", border: "1px solid var(--border)", borderRadius: "var(--radius-sm)" }}>
+          <input className="form-input" value={newBadgeName} onChange={(e) => setNewBadgeName(e.target.value)} placeholder="Badge name" />
+          <input className="form-input" value={newBadgeDesc} onChange={(e) => setNewBadgeDesc(e.target.value)} placeholder="Description (optional)" />
+          <input className="form-input" value={newBadgeIcon} onChange={(e) => setNewBadgeIcon(e.target.value)} placeholder="Icon URL (Cloudinary URL)" />
+          <button className="btn btn-primary btn-sm" onClick={async () => {
+            if (!newBadgeName) return;
+            try {
+              const badge = await adminApi.createBadge({ name: newBadgeName, description: newBadgeDesc, iconUrl: newBadgeIcon || undefined }, adminToken);
+              setBadgeList([badge, ...badgeList]);
+              setNewBadgeName(""); setNewBadgeDesc(""); setNewBadgeIcon("");
+              setShowCreateBadge(false);
+              showBadgeMsg("Badge created!");
+            } catch (err) { showBadgeMsg(err.message); }
+          }}>Save Badge</button>
+        </div>
+      )}
+
+      {badgeList.length === 0 ? (
+        <p className="empty-text" style={{ fontSize: "0.8rem" }}>No badges created yet.</p>
+      ) : (
+        <div className="admin-game-list">
+          {badgeList.map((b) => (
+            <div key={b.id} className="admin-game-row">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flex: 1, minWidth: 0 }}>
+                {b.iconUrl ? <img src={resolveAssetUrl(b.iconUrl)} alt="" style={{ width: 24, height: 24, objectFit: "contain", borderRadius: 4 }} /> : <Shield size={18} />}
+                <div style={{ minWidth: 0 }}>
+                  <strong>{b.name}</strong>
+                  {b.description && <span style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginLeft: "0.25rem" }}>{b.description}</span>}
+                  <span style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginLeft: "0.5rem" }}>{b._count?.users || 0} awarded</span>
+                </div>
+              </div>
+              <button className="btn btn-sm btn-secondary" onClick={() => setAwardBadgeId(awardBadgeId === b.id ? null : b.id)} style={{ fontSize: "0.7rem" }}>
+                Award
+              </button>
+              <button className="btn btn-sm btn-danger" onClick={async () => {
+                if (!confirm(`Delete "${b.name}" and revoke from all users?`)) return;
+                try {
+                  await adminApi.deleteBadge(b.id, adminToken);
+                  setBadgeList(badgeList.filter((x) => x.id !== b.id));
+                  showBadgeMsg("Badge deleted");
+                } catch (err) { showBadgeMsg(err.message); }
+              }} style={{ fontSize: "0.7rem" }}><X size={12} /></button>
+
+              {awardBadgeId === b.id && (
+                <div style={{ display: "flex", gap: "0.25rem", alignItems: "center" }}>
+                  <input className="form-input" style={{ width: 80 }} value={awardUserId} onChange={(e) => setAwardUserId(e.target.value)} placeholder="User ID" type="number" min="1" />
+                  <input className="form-input" style={{ width: 120 }} value={awardNote} onChange={(e) => setAwardNote(e.target.value)} placeholder="Note (optional)" />
+                  <button className="btn btn-sm btn-primary" style={{ fontSize: "0.7rem" }} onClick={async () => {
+                    if (!awardUserId) return;
+                    try {
+                      const ubid = parseInt(awardUserId);
+                      await adminApi.awardBadge(b.id, ubid, awardNote || undefined, adminToken);
+                      showBadgeMsg(`Badge awarded to user ${ubid}`);
+                      setAwardUserId(""); setAwardNote(""); setAwardBadgeId(null);
+                      setBadgeList(badgeList.map((x) => x.id === b.id ? { ...x, _count: { users: (x._count?.users || 0) + 1 } } : x));
+                    } catch (err) { showBadgeMsg(err.message); }
+                  }}>Give</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

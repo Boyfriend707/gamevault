@@ -44,6 +44,8 @@ model User {
   challengesCreated Challenge[] @relation("ChallengeCreator")
   challengeParticipants ChallengeParticipant[]
   badges           UserBadge[]
+  createdBadges    Badge[]      @relation("CreatedBadges")
+  awardedBadges    UserBadge[]  @relation("AwardedBadges")
   dailyProgress    DailyChallengeProgress[]
 }
 
@@ -277,21 +279,27 @@ model Decoration {
 }
 
 model Badge {
-  id          Int      @id @default(autoincrement())
-  name        String   @unique
-  iconUrl     String?
-  description String?
-  createdAt   DateTime @default(now())
-  users       UserBadge[]
+  id            Int      @id @default(autoincrement())
+  name          String   @unique
+  iconUrl       String?
+  description   String?
+  isSystemBadge Boolean  @default(false)
+  createdById   Int?
+  createdBy     User?    @relation("CreatedBadges", fields: [createdById], references: [id])
+  createdAt     DateTime @default(now())
+  users         UserBadge[]
 }
 
 model UserBadge {
-  id        Int      @id @default(autoincrement())
-  userId    Int
-  badgeId   Int
-  awardedAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id])
-  badge     Badge    @relation(fields: [badgeId], references: [id])
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  badgeId     Int
+  awardedById Int?
+  awardedBy   User?    @relation("AwardedBadges", fields: [awardedById], references: [id])
+  note        String?
+  awardedAt   DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  badge       Badge    @relation(fields: [badgeId], references: [id])
   @@unique([userId, badgeId])
 }
 
