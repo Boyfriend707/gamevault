@@ -26,6 +26,7 @@ function Settings({ user, onCheckUpdate, onUserUpdate }) {
   const [showFriendLib, setShowFriendLib] = useState(false);
   const [goalDefs, setGoalDefs] = useState([]);
   const [decoList, setDecoList] = useState([]);
+  const [profileVis, setProfileVis] = useState({ bio: "public", games: "public", stats: "public", badges: "public", friends: "public", currentlyPlaying: "public" });
   const [completedGoals, setCompletedGoals] = useState([]);
   const [adminPass, setAdminPass] = useState("");
   const [adminToken, setAdminToken] = useState(null);
@@ -43,8 +44,20 @@ const [editingDecoName, setEditingDecoName] = useState("");
       setCompletedGoals(s.completedGoals ? JSON.parse(s.completedGoals) : []);
     }).catch(console.error);
     goalsApi.list().then(setGoalDefs).catch(console.error);
+    settings.getVisibility().then(setProfileVis).catch(() => {});
     refreshFriends();
   }, []);
+
+  const saveVisibility = async () => {
+    try {
+      await settings.updateVisibility(profileVis);
+      setMessage("Visibility updated!");
+      setMsgType("success");
+    } catch (err) {
+      setMessage("Failed to update visibility");
+      setMsgType("error");
+    }
+  };
 
   const checkGoals = async () => {
     try {
@@ -297,6 +310,28 @@ const [editingDecoName, setEditingDecoName] = useState("");
                 </div>
               )}
             </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h2>Profile Visibility</h2>
+          </div>
+          <div className="card-body">
+            <p className="setting-hint">Control who can see each section of your profile.</p>
+            {Object.entries(profileVis).map(([field, level]) => (
+              <div key={field} className="setting-row">
+                <span className="setting-label">{field.charAt(0).toUpperCase() + field.slice(1)}</span>
+                <select className="form-select" value={level} onChange={(e) => setProfileVis({ ...profileVis, [field]: e.target.value })} style={{ width: "auto" }}>
+                  <option value="public">Everyone</option>
+                  <option value="friends">Friends Only</option>
+                  <option value="private">Only Me</option>
+                </select>
+              </div>
+            ))}
+            <button className="btn btn-primary btn-sm" onClick={saveVisibility} style={{ marginTop: "0.5rem" }}>
+              <Eye size={14} /> Save Visibility
+            </button>
           </div>
         </div>
 

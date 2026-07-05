@@ -177,4 +177,29 @@ router.put("/decoration", async (req, res) => {
   }
 });
 
+router.get("/visibility", async (req, res) => {
+  try {
+    const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { visibility: true } });
+    const DEFAULT_VISIBILITY = { bio: "public", games: "public", stats: "public", badges: "public", friends: "public", currentlyPlaying: "public" };
+    const vis = user?.visibility ? { ...DEFAULT_VISIBILITY, ...JSON.parse(user.visibility) } : DEFAULT_VISIBILITY;
+    res.json(vis);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch visibility" });
+  }
+});
+
+router.put("/visibility", async (req, res) => {
+  try {
+    const { visibility } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: { visibility: JSON.stringify(visibility) },
+      select: { visibility: true },
+    });
+    res.json({ visibility: user.visibility ? JSON.parse(user.visibility) : null });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update visibility" });
+  }
+});
+
 export default router;

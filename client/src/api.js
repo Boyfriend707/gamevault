@@ -284,4 +284,6 @@ export const settings = {
     request("/settings/banner-crop", { method: "PUT", body: JSON.stringify({ bannerCrop }) }),
   updateProfileTheme: (profileTheme) =>
     request("/settings/profile-theme", { method: "PUT", body: JSON.stringify({ profileTheme }) }),
+  getVisibility: () => request("/settings/visibility"),
+  updateVisibility: (visibility) => request("/settings/visibility", { method: "PUT", body: JSON.stringify({ visibility }) }),
 };

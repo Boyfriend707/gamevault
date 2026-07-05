@@ -1,5 +1,5 @@
 {
-    "installer":  "GameVault Setup 1.2.7.exe",
-    "version":  "1.2.7",
-    "notes":  "Chat Polls - create, vote, bar chart results"
+    "installer":  "GameVault Setup 1.2.8.exe",
+    "version":  "1.2.8",
+    "notes":  "Granular Profile Visibility - per-field privacy toggles (bio, games, stats, badges, friends, currentlyPlaying)"
 }

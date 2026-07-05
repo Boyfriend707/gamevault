@@ -24,6 +24,7 @@ model User {
   profileTheme String?
   loginStreak Int      @default(0)
   lastLoginDate DateTime?
+  visibility   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

@@ -7,38 +7,76 @@ const prisma = new PrismaClient();
 
 router.use(authenticateToken);
 
+const DEFAULT_VISIBILITY = { bio: "public", games: "public", stats: "public", badges: "public", friends: "public", currentlyPlaying: "public" };
+
+function canView(viewerIsOwner, viewerIsFriend, level) {
+  if (level === "public") return true;
+  if (level === "friends") return viewerIsFriend;
+  if (level === "private") return viewerIsOwner;
+  return true;
+}
+
 // GET /users/:id/profile
 router.get("/:id/profile", async (req, res) => {
   try {
     const userId = parseInt(req.params.id);
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true, bannerUrl: true, bannerCrop: true, bio: true, status: true, accentColor: true, role: true, xp: true, createdAt: true, profileTheme: true, loginStreak: true },
+      select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true, bannerUrl: true, bannerCrop: true, bio: true, status: true, accentColor: true, role: true, xp: true, createdAt: true, profileTheme: true, loginStreak: true, visibility: true },
     });
     if (!user) return res.status(404).json({ error: "User not found" });
-    const games = await prisma.game.findMany({
+
+    const viewerId = req.userId;
+    const isOwner = viewerId === userId;
+    const visibility = user.visibility ? { ...DEFAULT_VISIBILITY, ...JSON.parse(user.visibility) } : DEFAULT_VISIBILITY;
+
+    // Check if viewer is a friend
+    let isFriend = false;
+    if (viewerId && viewerId !== userId) {
+      const f1 = await prisma.friendship.findUnique({ where: { userId_friendId: { userId: viewerId, friendId: userId } } });
+      const f2 = await prisma.friendship.findUnique({ where: { userId_friendId: { userId, friendId: viewerId } } });
+      isFriend = !!(f1 || f2);
+    }
+
+    // Bio
+    const showBio = canView(isOwner, isFriend, visibility.bio);
+
+    // Games
+    const showGames = canView(isOwner, isFriend, visibility.games);
+    const games = showGames ? await prisma.game.findMany({
       where: { userId },
       include: { tags: { include: { tag: true } } },
       orderBy: [{ pinned: "desc" }, { pinOrder: "asc" }, { updatedAt: "desc" }],
-    });
+    }) : [];
+
+    // Stats
+    const showStats = canView(isOwner, isFriend, visibility.stats);
+    const stats = showStats ? { total: games.length, playing: games.filter((g) => g.status === "playing").length, completed: games.filter((g) => g.status === "completed").length, notPlaying: games.filter((g) => g.status === "not-playing" || g.status === "dropped").length, totalPlaytime: games.reduce((s, g) => s + g.playtime, 0) } : null;
+
+    // Currently Playing (separate from stats, but derived from games)
+    const showPlaying = canView(isOwner, isFriend, visibility.currentlyPlaying);
+    const playingGames = showPlaying ? games.filter((g) => g.status === "playing") : [];
+
+    // Steam link
     const steamLink = await prisma.steamLink.findUnique({ where: { userId } });
-    const stats = { total: games.length, playing: games.filter((g) => g.status === "playing").length, completed: games.filter((g) => g.status === "completed").length, notPlaying: games.filter((g) => g.status === "not-playing" || g.status === "dropped").length, totalPlaytime: games.reduce((s, g) => s + g.playtime, 0) };
-    
+
     // Friend count
-    const friendCount = await prisma.friendship.count({ where: { userId } }) + await prisma.friendship.count({ where: { friendId: userId } });
-    
+    const showFriends = canView(isOwner, isFriend, visibility.friends);
+    const friendCount = showFriends ? (await prisma.friendship.count({ where: { userId } }) + await prisma.friendship.count({ where: { friendId: userId } })) : null;
+
     // Badges
-    const badges = await prisma.userBadge.findMany({
+    const showBadges = canView(isOwner, isFriend, visibility.badges);
+    const badges = showBadges ? await prisma.userBadge.findMany({
       where: { userId },
       include: { badge: true },
       orderBy: { awardedAt: "desc" },
-    });
+    }) : [];
 
-    // Mutual friends (if viewer is logged in and not the same user)
+    // Mutual friends (only if friends visibility allows)
     let mutualFriends = [];
-    if (req.userId && req.userId !== userId) {
-      const viewerFriends1 = await prisma.friendship.findMany({ where: { userId: req.userId }, select: { friendId: true } });
-      const viewerFriends2 = await prisma.friendship.findMany({ where: { friendId: req.userId }, select: { userId: true } });
+    if (showFriends && viewerId && viewerId !== userId) {
+      const viewerFriends1 = await prisma.friendship.findMany({ where: { userId: viewerId }, select: { friendId: true } });
+      const viewerFriends2 = await prisma.friendship.findMany({ where: { friendId: viewerId }, select: { userId: true } });
       const viewerFriendIds = new Set([...viewerFriends1.map(f => f.friendId), ...viewerFriends2.map(f => f.userId)]);
       const profileFriends1 = await prisma.friendship.findMany({ where: { userId }, select: { friendId: true } });
       const profileFriends2 = await prisma.friendship.findMany({ where: { friendId: userId }, select: { userId: true } });
@@ -50,7 +88,15 @@ router.get("/:id/profile", async (req, res) => {
       }
     }
 
-    res.json({ ...user, games, steamLink, stats, friendCount, badges: badges.map(b => ({ id: b.badge.id, name: b.badge.name, iconUrl: b.badge.iconUrl, description: b.badge.description, awardedAt: b.awardedAt })), mutualFriends });
+    res.json({
+      ...user, visibility,
+      bio: showBio ? user.bio : null,
+      games, stats, friendCount,
+      playingGames,
+      steamLink,
+      badges: badges.map(b => ({ id: b.badge.id, name: b.badge.name, iconUrl: b.badge.iconUrl, description: b.badge.description, awardedAt: b.awardedAt })),
+      mutualFriends,
+    });
   } catch (error) {
     res.status(500).json({ error: "Failed to fetch profile" });
   }
