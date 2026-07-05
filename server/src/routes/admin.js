@@ -174,4 +174,42 @@ router.delete("/badges/:badgeId", adminAuth, async (req, res) => {
   }
 });
 
+// GET /admin/reports -- List all reports
+router.get("/reports", adminAuth, async (req, res) => {
+  try {
+    const reports = await prisma.messageReport.findMany({
+      orderBy: { createdAt: "desc" },
+      include: {
+        reporter: { select: { id: true, username: true, displayName: true } },
+        message: { select: { id: true, content: true, imageUrl: true, createdAt: true, userId: true, user: { select: { id: true, username: true, displayName: true } } } },
+        resolver: { select: { id: true, username: true } },
+      },
+    });
+    res.json(reports);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch reports" });
+  }
+});
+
+// POST /admin/reports/:reportId/resolve -- Resolve a report
+router.post("/reports/:reportId/resolve", adminAuth, async (req, res) => {
+  try {
+    const reportId = parseInt(req.params.reportId);
+    const { action } = req.body;
+    if (!["dismiss", "delete_message", "delete_and_warn"].includes(action)) return res.status(400).json({ error: "Invalid action" });
+    const report = await prisma.messageReport.findUnique({ where: { id: reportId } });
+    if (!report) return res.status(404).json({ error: "Report not found" });
+    if (action === "delete_message" || action === "delete_and_warn") {
+      await prisma.message.update({ where: { id: report.messageId }, data: { deletedAt: new Date() } });
+    }
+    await prisma.messageReport.update({
+      where: { id: reportId },
+      data: { status: "resolved", resolvedById: req.adminId, resolvedAt: new Date() },
+    });
+    res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to resolve report" });
+  }
+});
+
 export default router;

@@ -54,6 +54,8 @@ model User {
   profileReactions ProfileReaction[] @relation("ProfileReactions")
   profileReacted   ProfileReaction[] @relation("ProfileReacted")
   vibes            VibeNote[]
+  messageReports   MessageReport[] @relation("ReportedBy")
+  resolvedReports  MessageReport[] @relation("ResolvedBy")
   dailyProgress    DailyChallengeProgress[]
 }
 
@@ -92,6 +94,7 @@ model Message {
   replyTo        Message?    @relation("MessageReply", fields: [replyToId], references: [id])
   replies        Message[]   @relation("MessageReply")
   poll           ChatPoll?
+  reports        MessageReport[]
 }
 
 model ChatPoll {
@@ -126,6 +129,21 @@ model ProfileReaction {
   profileUser    User     @relation("ProfileReactions", fields: [profileUserId], references: [id])
   reactor        User     @relation("ProfileReacted", fields: [reactorId], references: [id])
   @@unique([profileUserId, reactorId])
+}
+
+model MessageReport {
+  id           Int      @id @default(autoincrement())
+  messageId    Int
+  reporterId   Int
+  reason       String
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  resolvedById Int?
+  resolvedAt   DateTime?
+  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  reporter     User     @relation("ReportedBy", fields: [reporterId], references: [id])
+  resolver     User?    @relation("ResolvedBy", fields: [resolvedById], references: [id])
+  @@unique([messageId, reporterId])
 }
 
 model VibeNote {

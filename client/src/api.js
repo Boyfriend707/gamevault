@@ -209,7 +209,11 @@ export const admin = {
   revokeBadge: (badgeId, userId, token) =>
     request(`/admin/badges/${badgeId}/award/${userId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
   deleteBadge: (badgeId, token) =>
-    request(`/admin/badges/${badgeId}`, { method: "DELETE", headers: { Authorization: `Bearer ${token}` } }),
+    request("/admin/badges/" + badgeId, { method: "DELETE", headers: { ...getAuthHeaders(), Authorization: `Bearer ${token}` } }),
+  listReports: (token) =>
+    request("/admin/reports", { headers: { ...getAuthHeaders(), Authorization: `Bearer ${token}` } }),
+  resolveReport: (reportId, action, token) =>
+    request("/admin/reports/" + reportId + "/resolve", { method: "POST", body: JSON.stringify({ action }), headers: { ...getAuthHeaders(), Authorization: `Bearer ${token}` } }),
 };
 
 export const decorations = {
@@ -239,6 +243,7 @@ export const chats = {
   toggleReaction: (messageId, emoji) => request(`/chats/messages/${messageId}/react`, { method: "POST", body: JSON.stringify({ emoji }) }),
   setTyping: (convoId) => request(`/chats/${convoId}/typing`, { method: "POST" }),
   search: (convoId, q) => request(`/chats/${convoId}/search?q=${encodeURIComponent(q)}`),
+  reportMessage: (messageId, reason) => request(`/chats/messages/${messageId}/report`, { method: "POST", body: JSON.stringify({ reason }) }),
 };
 
 export const dashboardApi = {

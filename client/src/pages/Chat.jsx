@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Send, ArrowLeft, Image, Smile, Edit2, Trash2, Reply, Search, X, BarChart3, Plus, Minus, Vote } from "lucide-react";
+import { MessageSquare, Send, ArrowLeft, Image, Smile, Edit2, Trash2, Reply, Search, X, BarChart3, Plus, Minus, Vote, Flag } from "lucide-react";
 import { chats as chatsApi } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
@@ -28,6 +28,8 @@ function Chat({ user }) {
   const [showSearch, setShowSearch] = useState(false);
   const [typingText, setTypingText] = useState("");
   const [showPollForm, setShowPollForm] = useState(false);
+  const [reportingId, setReportingId] = useState(null);
+  const [reportReason, setReportReason] = useState("");
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
@@ -143,6 +145,15 @@ function Chat({ user }) {
       setMessages((prev) => prev.map((m) => m.id === messageId ? { ...m, reactions: result.reactions } : m));
     } catch (err) { console.error(err); }
     setShowEmoji(null);
+  };
+
+  const handleReport = async () => {
+    if (!reportReason.trim() || !reportingId) return;
+    try {
+      await chatsApi.reportMessage(reportingId, reportReason);
+      setReportingId(null);
+      setReportReason("");
+    } catch (err) { console.error(err); }
   };
 
   const handleVote = async (messageId, optionId) => {
@@ -412,6 +423,11 @@ function Chat({ user }) {
                                 <Reply size={12} />
                               </button>
                             )}
+                            {!deleted && !isMe && (
+                              <button className="btn-icon" onClick={() => setReportingId(msg.id)} title="Report">
+                                <Flag size={12} />
+                              </button>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -421,6 +437,18 @@ function Chat({ user }) {
                 {typingText && <div className="chat-typing"><span>{typingText}</span></div>}
                 <div ref={messagesEndRef} />
               </div>
+
+              {reportingId && (
+                <div className="chat-reply-preview">
+                  <div className="chat-reply-preview-info">
+                    <span className="chat-reply-preview-name">Report message</span>
+                    <input type="text" value={reportReason} onChange={(e) => setReportReason(e.target.value)}
+                      className="chat-input-field" placeholder="Why are you reporting this?" autoFocus />
+                  </div>
+                  <button className="btn btn-primary btn-sm" onClick={handleReport} disabled={!reportReason.trim()}>Send</button>
+                  <button className="btn-icon" onClick={() => { setReportingId(null); setReportReason(""); }}><X size={14} /></button>
+                </div>
+              )}
 
               {replyTo && (
                 <div className="chat-reply-preview">

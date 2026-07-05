@@ -684,6 +684,7 @@ const [editingDecoName, setEditingDecoName] = useState("");
             )}
 
             <AdminBadges adminToken={adminToken} />
+            <AdminReports adminToken={adminToken} />
           </div>
         </div>
 
@@ -833,6 +834,65 @@ function AdminBadges({ adminToken }) {
                       setBadgeList(badgeList.map((x) => x.id === b.id ? { ...x, _count: { users: (x._count?.users || 0) + 1 } } : x));
                     } catch (err) { showBadgeMsg(err.message); }
                   }}>Give</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminReports({ adminToken }) {
+  const [reports, setReports] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const loadReports = async () => {
+    setLoading(true);
+    try {
+      const data = await adminApi.listReports(adminToken);
+      setReports(data);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  };
+
+  const resolveReport = async (reportId, action) => {
+    try {
+      await adminApi.resolveReport(reportId, action, adminToken);
+      loadReports();
+    } catch (err) { console.error(err); }
+  };
+
+  useEffect(() => {
+    if (adminToken) loadReports();
+  }, [adminToken]);
+
+  if (!adminToken) return null;
+
+  return (
+    <div className="admin-section" style={{ marginTop: "1.5rem" }}>
+      <h4>Reports ({reports.length})</h4>
+      <button className="btn btn-sm" onClick={loadReports} disabled={loading}>
+        Refresh
+      </button>
+      {reports.length === 0 ? (
+        <p className="empty-text">No reports</p>
+      ) : (
+        <div className="report-list">
+          {reports.map((r) => (
+            <div key={r.id} className="report-item">
+              <div className="report-info">
+                <span className="report-message">"{r.message?.content?.slice(0, 60) || "[Image]"}"</span>
+                <span className="report-by">by {r.message?.user?.displayName || r.message?.user?.username}</span>
+                <span className="report-reason">Reason: {r.reason}</span>
+                <span className="report-reporter">Reported by {r.reporter?.displayName || r.reporter?.username}</span>
+                <span className="report-status" data-status={r.status}>{r.status}</span>
+              </div>
+              {r.status === "pending" && (
+                <div className="report-actions">
+                  <button className="btn btn-sm btn-primary" onClick={() => resolveReport(r.id, "dismiss")}>Dismiss</button>
+                  <button className="btn btn-sm" onClick={() => resolveReport(r.id, "delete_message")}>Delete Message</button>
                 </div>
               )}
             </div>

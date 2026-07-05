@@ -290,4 +290,24 @@ router.post("/:id/typing", async (req, res) => {
   }
 });
 
+// POST /chats/messages/:messageId/report -- Report a message
+router.post("/messages/:messageId/report", async (req, res) => {
+  try {
+    const messageId = parseInt(req.params.messageId);
+    const msg = await prisma.message.findUnique({ where: { id: messageId } });
+    if (!msg) return res.status(404).json({ error: "Message not found" });
+    if (msg.userId === req.userId) return res.status(400).json({ error: "Cannot report your own message" });
+    const { reason } = req.body;
+    if (!reason) return res.status(400).json({ error: "Reason required" });
+    const existing = await prisma.messageReport.findUnique({ where: { messageId_reporterId: { messageId, reporterId: req.userId } } });
+    if (existing) return res.status(400).json({ error: "Already reported this message" });
+    const report = await prisma.messageReport.create({
+      data: { messageId, reporterId: req.userId, reason },
+    });
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to report message" });
+  }
+});
+
 export default router;
