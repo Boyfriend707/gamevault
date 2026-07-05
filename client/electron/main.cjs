@@ -75,6 +75,10 @@ function createWindow() {
     mainWindow.show();
   });
 
+  mainWindow.on("close", () => {
+    if (tray) { try { tray.destroy(); } catch {} tray = null; }
+  });
+
   mainWindow.webContents.on("before-input-event", (event, input) => {
     if (input.key === "F12") {
       mainWindow.webContents.toggleDevTools();
@@ -373,6 +377,7 @@ app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
+    if (tray) { try { tray.destroy(); } catch {} tray = null; }
     app.quit();
   }
 });
