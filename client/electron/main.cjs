@@ -31,19 +31,22 @@ function createTray() {
 
 function updatePresence() {
   if (!mainWindow) return;
-  const entries = Array.from(trackedGames.entries());
-  if (entries.length > 0) {
-    const [gameId, track] = entries[0];
-    const elapsed = Math.round((Date.now() - track.startTime) / 60000);
-    const mins = Math.max(elapsed, 0);
-    const label = track.gameTitle || `Game #${gameId}`;
-    const status = `Playing ${label} (${mins}m session)`;
-    if (tray) tray.setToolTip(`GameVault - ${status}`);
-    mainWindow.setTitle(`GameVault - ${status}`);
-  } else {
-    if (tray) tray.setToolTip("GameVault");
-    mainWindow.setTitle("GameVault");
-  }
+  try {
+    if (mainWindow.isDestroyed()) return;
+    const entries = Array.from(trackedGames.entries());
+    if (entries.length > 0) {
+      const [gameId, track] = entries[0];
+      const elapsed = Math.round((Date.now() - track.startTime) / 60000);
+      const mins = Math.max(elapsed, 0);
+      const label = track.gameTitle || `Game #${gameId}`;
+      const status = `Playing ${label} (${mins}m session)`;
+      try { if (tray) tray.setToolTip(`GameVault - ${status}`); } catch {}
+      try { mainWindow.setTitle(`GameVault - ${status}`); } catch {}
+    } else {
+      try { if (tray) tray.setToolTip("GameVault"); } catch {}
+      try { mainWindow.setTitle("GameVault"); } catch {}
+    }
+  } catch {}
 }
 
 function createWindow() {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Search, Edit3, Trash2, Gamepad2, Play, Square, FolderOpen, Clock, Tag, FileText, Pin, X, Shuffle, LayoutGrid, List } from "lucide-react";
+import { Plus, Search, Edit3, Trash2, Gamepad2, Play, Square, FolderOpen, Clock, Tag, FileText, Pin, X, Shuffle, LayoutGrid, List, FileDown, FileUp } from "lucide-react";
 import { games, tags as tagsApi } from "../api";
 import config from "../config";
 
