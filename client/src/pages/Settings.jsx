@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Key, Users, UserPlus, Check, X, Download, Camera, Eye, User, MessageSquare, Trophy, Lock, Shield, ChevronRight, Pencil } from "lucide-react";
+import { Key, Users, UserPlus, Check, X, Download, Camera, Eye, User, MessageSquare, Trophy, Lock, Shield, ChevronRight, Pencil, Smile } from "lucide-react";
 import { settings, friends, auth, goals as goalsApi, admin as adminApi, decorations as decorationsApi, chats as chatsApi } from "../api";
 import config, { resolveAssetUrl } from "../config";
 import DebugPanel from "../components/DebugPanel";
@@ -27,6 +27,9 @@ function Settings({ user, onCheckUpdate, onUserUpdate }) {
   const [goalDefs, setGoalDefs] = useState([]);
   const [decoList, setDecoList] = useState([]);
   const [profileVis, setProfileVis] = useState({ bio: "public", games: "public", stats: "public", badges: "public", friends: "public", currentlyPlaying: "public" });
+  const [statusMessage, setStatusMessage] = useState("");
+  const [statusEmoji, setStatusEmoji] = useState("");
+  const [birthdayVal, setBirthdayVal] = useState("");
   const [completedGoals, setCompletedGoals] = useState([]);
   const [adminPass, setAdminPass] = useState("");
   const [adminToken, setAdminToken] = useState(null);
@@ -45,6 +48,11 @@ const [editingDecoName, setEditingDecoName] = useState("");
     }).catch(console.error);
     goalsApi.list().then(setGoalDefs).catch(console.error);
     settings.getVisibility().then(setProfileVis).catch(() => {});
+    if (user) {
+      setStatusMessage(user.statusMessage || "");
+      setStatusEmoji(user.statusEmoji || "");
+      if (user.birthday) setBirthdayVal(user.birthday.slice(0, 10));
+    }
     refreshFriends();
   }, []);
 
@@ -56,6 +64,26 @@ const [editingDecoName, setEditingDecoName] = useState("");
     } catch (err) {
       setMessage("Failed to update visibility");
       setMsgType("error");
+    }
+  };
+
+  const saveStatusMsg = async () => {
+    try {
+      await settingsApi.updateStatusMessage(statusMessage, statusEmoji);
+      setMessage("Status updated!");
+      setMsgType("success");
+    } catch (err) {
+      setMessage("Failed to update status", "error");
+    }
+  };
+
+  const saveBirthday = async () => {
+    try {
+      await settingsApi.updateBirthday(birthdayVal || null);
+      setMessage("Birthday updated!");
+      setMsgType("success");
+    } catch (err) {
+      setMessage("Failed to update birthday", "error");
     }
   };
 
@@ -332,6 +360,46 @@ const [editingDecoName, setEditingDecoName] = useState("");
             <button className="btn btn-primary btn-sm" onClick={saveVisibility} style={{ marginTop: "0.5rem" }}>
               <Eye size={14} /> Save Visibility
             </button>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h2>Profile</h2>
+          </div>
+          <div className="card-body">
+            <div className="setting-section">
+              <h3>Status Message</h3>
+              <div className="setting-row">
+                <span className="setting-label">Status Emoji</span>
+                <input type="text" value={statusEmoji} onChange={(e) => setStatusEmoji(e.target.value)}
+                  className="chat-input-field" style={{ width: 60 }} maxLength={2} placeholder="🔥" />
+              </div>
+              <div className="setting-row">
+                <span className="setting-label">Message</span>
+                <input type="text" value={statusMessage} onChange={(e) => setStatusMessage(e.target.value)}
+                  className="chat-input-field" maxLength={40} placeholder="E.g. grinding ranked" />
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={saveStatusMsg}>
+                <Smile size={14} /> Save Status
+              </button>
+            </div>
+            <div className="setting-section" style={{ marginTop: "1rem" }}>
+              <h3>Birthday</h3>
+              <div className="setting-row">
+                <span className="setting-label">Date</span>
+                <input type="date" value={birthdayVal} onChange={(e) => setBirthdayVal(e.target.value)}
+                  className="chat-input-field" style={{ width: "auto" }} />
+              </div>
+              <button className="btn btn-primary btn-sm" onClick={saveBirthday}>
+                <Check size={14} /> Save Birthday
+              </button>
+              {birthdayVal && (
+                <button className="btn btn-sm btn-secondary" onClick={() => { setBirthdayVal(""); settingsApi.updateBirthday(null); }} style={{ marginLeft: "0.5rem" }}>
+                  <X size={14} /> Remove
+                </button>
+              )}
+            </div>
           </div>
         </div>
 

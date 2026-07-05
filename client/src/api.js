@@ -241,6 +241,20 @@ export const chats = {
   search: (convoId, q) => request(`/chats/${convoId}/search?q=${encodeURIComponent(q)}`),
 };
 
+export const dashboardApi = {
+  celebrationsToday: () => request("/dashboard/celebrations-today"),
+};
+
+export const vibesApi = {
+  list: () => request("/vibes"),
+  create: (data) => request("/vibes", { method: "POST", body: JSON.stringify(data) }),
+  delete: (id) => request(`/vibes/${id}`, { method: "DELETE" }),
+};
+
+export const usersApi2 = {
+  reactProfile: (userId, emoji) => request(`/users/${userId}/reactions`, { method: "POST", body: JSON.stringify({ emoji }) }),
+};
+
 export const notificationsApi = {
   list: () => request("/notifications"),
   markRead: (id) => request(`/notifications/${id}/read`, { method: "PUT" }),
@@ -278,6 +292,9 @@ export const settings = {
     request("/settings/bio", { method: "PUT", body: JSON.stringify({ bio }) }),
   updateStatus: (status) =>
     request("/settings/status", { method: "PUT", body: JSON.stringify({ status }) }),
+  updateStatusMessage: (statusMessage, statusEmoji) =>
+    request("/settings/status", { method: "PUT", body: JSON.stringify({ statusMessage, statusEmoji }) }),
+  updateBirthday: (birthday) => request("/settings/birthday", { method: "PUT", body: JSON.stringify({ birthday }) }),
   updateAccentColor: (accentColor) =>
     request("/settings/accent-color", { method: "PUT", body: JSON.stringify({ accentColor }) }),
   updateBannerCrop: (bannerCrop) =>

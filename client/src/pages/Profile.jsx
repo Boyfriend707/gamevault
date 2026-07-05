@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Gamepad2, PlayCircle, CheckCircle2, Clock, Timer, Trophy, Pencil, Check, X, MessageSquare, Pin, Zap, CheckSquare, GripVertical, Shield, Medal, Star, Users } from "lucide-react";
-import { friends, games as gamesApi, chats as chatsApi, users as usersApi, settings as settingsApi } from "../api";
+import { ArrowLeft, Gamepad2, PlayCircle, CheckCircle2, Clock, Timer, Trophy, Pencil, Check, X, MessageSquare, Pin, Zap, CheckSquare, GripVertical, Shield, Medal, Star, Users, Smile } from "lucide-react";
+import { friends, games as gamesApi, chats as chatsApi, users as usersApi, settings as settingsApi, usersApi2 } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
 import config, { resolveAssetUrl } from "../config";
@@ -19,7 +19,11 @@ function Profile({ user: currentUser }) {
   const [displayNameText, setDisplayNameText] = useState("");
   const [milestones, setMilestones] = useState([]);
   const [orderedPinnedGames, setOrderedPinnedGames] = useState([]);
+  const [reactions, setReactions] = useState([]);
+  const [showReactionPicker, setShowReactionPicker] = useState(false);
   const draggedIndex = useRef(null);
+
+  const EMOJI_LIST = ["👍", "❤️", "😂", "😮", "😢", "🔥", "🎉", "👀", "💯", "✨"];
 
   const isOwn = currentUser?.id === parseInt(id);
 
@@ -29,6 +33,7 @@ function Profile({ user: currentUser }) {
       usersApi.getProfile(id)
         .then((data) => {
           setProfile(data);
+          setReactions(data.reactions || []);
           setOrderedPinnedGames(data.games.filter((g) => g.pinned));
         })
         .catch(() => { navigate("/"); })
@@ -69,6 +74,14 @@ function Profile({ user: currentUser }) {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleReaction = async (emoji) => {
+    try {
+      const result = await usersApi2.reactProfile(profile.id, emoji);
+      setReactions(result);
+    } catch (err) { console.error(err); }
+    setShowReactionPicker(false);
   };
 
   if (loading) {
@@ -139,7 +152,7 @@ function Profile({ user: currentUser }) {
                 </h1>
               )}
             </div>
-            {profile.status && <p className="profile-status">{profile.status}</p>}
+            {profile.status && <p className="profile-status">{profile.statusEmoji && <span style={{ marginRight: 4 }}>{profile.statusEmoji}</span>}{profile.statusMessage || profile.status}</p>}
             <p className="profile-joined">@{profile.username} &middot; Joined {new Date(profile.createdAt).toLocaleDateString()}</p>
             {profile.steamLink?.displayName && (
               <p className="profile-steam">Steam: {profile.steamLink.displayName}</p>
@@ -176,6 +189,27 @@ function Profile({ user: currentUser }) {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="profile-reactions">
+          {(profile.reactions || reactions).map((r) => (
+            <button key={r.emoji} className={`chat-reaction-btn ${r.reactors.some((re) => re.id === currentUser?.id) ? "chat-reaction-active" : ""}`}
+              onClick={() => !isOwn && handleReaction(r.emoji)}>
+              {r.emoji} {r.count}
+            </button>
+          ))}
+          {!isOwn && (
+            <div className="profile-reaction-add" onClick={() => setShowReactionPicker(!showReactionPicker)}>
+              <Smile size={16} />
+            </div>
+          )}
+          {showReactionPicker && (
+            <div className="profile-reaction-picker">
+              {EMOJI_LIST.map((emo) => (
+                <button key={emo} className="profile-reaction-emoji" onClick={() => handleReaction(emo)}>{emo}</button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 

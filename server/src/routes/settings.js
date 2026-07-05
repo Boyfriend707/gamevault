@@ -110,15 +110,33 @@ router.put("/bio", async (req, res) => {
 
 router.put("/status", async (req, res) => {
   try {
-    const { status } = req.body;
+    const { status, statusMessage, statusEmoji } = req.body;
+    const data = {};
+    if (status !== undefined) data.status = status || null;
+    if (statusMessage !== undefined) data.statusMessage = statusMessage || null;
+    if (statusEmoji !== undefined) data.statusEmoji = statusEmoji || null;
     const user = await prisma.user.update({
       where: { id: req.userId },
-      data: { status: status || null },
-      select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true, bannerUrl: true, bannerCrop: true, bio: true, status: true, accentColor: true, role: true },
+      data,
+      select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true, bannerUrl: true, bannerCrop: true, bio: true, status: true, statusMessage: true, statusEmoji: true, accentColor: true, role: true },
     });
     res.json(user);
   } catch (error) {
     res.status(500).json({ error: "Failed to update status" });
+  }
+});
+
+router.put("/birthday", async (req, res) => {
+  try {
+    const { birthday } = req.body;
+    const user = await prisma.user.update({
+      where: { id: req.userId },
+      data: { birthday: birthday ? new Date(birthday) : null },
+      select: { birthday: true },
+    });
+    res.json({ birthday: user.birthday });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to update birthday" });
   }
 });
 

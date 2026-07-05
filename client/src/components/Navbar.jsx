@@ -8,6 +8,7 @@ import {
   Settings as SettingsIcon,
   LogOut,
   Trophy,
+  StickyNote,
 } from "lucide-react";
 import { Zap } from "lucide-react";
 import AvatarWithDecoration from "./AvatarWithDecoration";
@@ -24,6 +25,7 @@ function Navbar({ user, onLogout }) {
     { to: "/challenges", label: "Challenges", icon: Trophy },
     { to: "/appearance", label: "Appearance", icon: Palette },
     { to: "/chat", label: "Chat", icon: MessageSquare },
+    { to: "/vibes", label: "Vibes", icon: StickyNote },
     { to: "/settings", icon: SettingsIcon },
   ];
 

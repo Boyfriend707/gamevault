@@ -12,7 +12,7 @@ import {
   MessageSquare,
   X,
 } from "lucide-react";
-import { friends, games, challenges as challengesApi, chats as chatsApi } from "../api";
+import { friends, games, challenges as challengesApi, chats as chatsApi, dashboardApi } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
 
@@ -49,12 +49,14 @@ function Dashboard({ user }) {
   const [leaderboard, setLeaderboard] = useState([]);
   const [challengeList, setChallengeList] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [celebrations, setCelebrations] = useState(null);
 
   useEffect(() => {
     games.stats().then(setStats).catch(console.error);
     friends.list().then(setFriendList).catch(console.error);
     friends.leaderboard().then(setLeaderboard).catch(console.error);
     challengesApi.list().then(setChallengeList).catch(console.error);
+    dashboardApi.celebrationsToday().then(setCelebrations).catch(() => {});
     const done = setTimeout(() => setLoading(false), 2000);
     return () => clearTimeout(done);
   }, []);
@@ -110,6 +112,21 @@ function Dashboard({ user }) {
           <p className="page-subtitle">Welcome back, {user.username}</p>
         </div>
       </div>
+
+      {celebrations && (celebrations.birthdays.length > 0 || celebrations.anniversaries.length > 0) && (
+        <div className="celebrations-banner">
+          {celebrations.birthdays.map((u) => (
+            <div key={u.id} className="celebration-item" onClick={() => navigate(`/profile/${u.id}`)}>
+              🎂 <strong>{u.displayName || u.username}</strong>'s birthday!
+            </div>
+          ))}
+          {celebrations.anniversaries.map((u) => (
+            <div key={u.id} className="celebration-item" onClick={() => navigate(`/profile/${u.id}`)}>
+              🎉 <strong>{u.displayName || u.username}</strong>'s GameVault anniversary!
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="stat-cards">
         <StatCard icon={Gamepad2} label="Total Games" value={stats.total} color="#6366f1" />

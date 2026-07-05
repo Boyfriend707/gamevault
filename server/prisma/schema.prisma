@@ -25,6 +25,9 @@ model User {
   loginStreak Int      @default(0)
   lastLoginDate DateTime?
   visibility   String?
+  birthday     DateTime?
+  statusMessage String?
+  statusEmoji  String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -48,6 +51,9 @@ model User {
   createdBadges    Badge[]      @relation("CreatedBadges")
   awardedBadges    UserBadge[]  @relation("AwardedBadges")
   pollVotes        PollVote[]
+  profileReactions ProfileReaction[] @relation("ProfileReactions")
+  profileReacted   ProfileReaction[] @relation("ProfileReacted")
+  vibes            VibeNote[]
   dailyProgress    DailyChallengeProgress[]
 }
 
@@ -109,6 +115,27 @@ model PollVote {
   poll      ChatPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id])
   @@unique([pollId, userId, optionId])
+}
+
+model ProfileReaction {
+  id             Int      @id @default(autoincrement())
+  profileUserId  Int
+  reactorId      Int
+  emoji          String
+  createdAt      DateTime @default(now())
+  profileUser    User     @relation("ProfileReactions", fields: [profileUserId], references: [id])
+  reactor        User     @relation("ProfileReacted", fields: [reactorId], references: [id])
+  @@unique([profileUserId, reactorId])
+}
+
+model VibeNote {
+  id        Int      @id @default(autoincrement())
+  content   String?
+  imageUrl  String?
+  color     String   @default("#fef08a")
+  createdAt DateTime @default(now())
+  authorId  Int
+  author    User     @relation(fields: [authorId], references: [id])
 }
 
 model FriendRequest {

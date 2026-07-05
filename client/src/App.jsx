@@ -7,6 +7,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Collection from "./pages/Collection";
 import SteamPage from "./pages/SteamPage";
+import Vibes from "./pages/Vibes";
 import Settings from "./pages/Settings";
 import Appearance from "./pages/Appearance";
 import Profile from "./pages/Profile";
@@ -142,6 +143,7 @@ function App() {
           <Route path="/" element={<Dashboard user={user} />} />
           <Route path="/collection" element={<Collection />} />
           <Route path="/steam" element={<SteamPage />} />
+          <Route path="/vibes" element={<Vibes user={user} />} />
           <Route path="/settings" element={<Settings user={user} onCheckUpdate={handleCheckUpdate} onUserUpdate={setUser} />} />
           <Route path="/appearance" element={<Appearance user={user} onUserUpdate={setUser} onBgUpdate={setBgValue} />} />
           <Route path="/profile/:id" element={<Profile user={user} />} />
