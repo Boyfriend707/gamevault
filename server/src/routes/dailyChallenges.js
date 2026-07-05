@@ -147,6 +147,7 @@ router.post("/check", async (req, res) => {
 
     res.json({ loginStreak: streak, challenges: todayData });
   } catch (error) {
+    console.error("Daily challenges check error:", error);
     res.status(500).json({ error: "Failed to check daily challenges" });
   }
 });
