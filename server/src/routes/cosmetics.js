@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
-import { requireAuth, requireAdmin } from "../auth.js";
+import { authenticateToken, requireAdmin } from "../middleware/auth.js";
 
 const prisma = new PrismaClient();
 const router = Router();
@@ -26,13 +26,13 @@ function weightedRandom() {
 }
 
 // List all cosmetics (admin)
-router.get("/", requireAuth, async (req, res) => {
+router.get("/", authenticateToken, async (req, res) => {
   const items = await prisma.cosmeticItem.findMany({ orderBy: { createdAt: "desc" } });
   res.json(items);
 });
 
 // List user's owned cosmetics
-router.get("/mine", requireAuth, async (req, res) => {
+router.get("/mine", authenticateToken, async (req, res) => {
   const items = await prisma.userCosmetic.findMany({
     where: { userId: req.userId },
     include: { cosmetic: true },
@@ -42,7 +42,7 @@ router.get("/mine", requireAuth, async (req, res) => {
 });
 
 // Open a crate
-router.post("/open-crate", requireAuth, async (req, res) => {
+router.post("/open-crate", authenticateToken, async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: req.userId },
     select: { unopenedCrates: true },
@@ -78,7 +78,7 @@ router.post("/open-crate", requireAuth, async (req, res) => {
 });
 
 // Toggle equip
-router.put("/:id/equip", requireAuth, async (req, res) => {
+router.put("/:id/equip", authenticateToken, async (req, res) => {
   const uc = await prisma.userCosmetic.findFirst({
     where: { id: parseInt(req.params.id), userId: req.userId },
   });
@@ -92,7 +92,7 @@ router.put("/:id/equip", requireAuth, async (req, res) => {
 });
 
 // Admin: create cosmetic
-router.post("/", requireAuth, requireAdmin, async (req, res) => {
+router.post("/", authenticateToken, requireAdmin, async (req, res) => {
   const { name, type, rarity, imageUrl, unlockMessage } = req.body;
   if (!RARITY_ORDER.includes(rarity)) {
     return res.status(400).json({ error: "Invalid rarity" });
@@ -104,7 +104,7 @@ router.post("/", requireAuth, requireAdmin, async (req, res) => {
 });
 
 // Admin: seed sample cosmetics
-router.post("/seed", requireAuth, requireAdmin, async (req, res) => {
+router.post("/seed", authenticateToken, requireAdmin, async (req, res) => {
   const samples = [
     { name: "Classic Frame", type: "profile_frame", rarity: "common", unlockMessage: "A simple starting frame" },
     { name: "Wooden Frame", type: "profile_frame", rarity: "common" },
