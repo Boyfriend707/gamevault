@@ -246,8 +246,11 @@ function Collection() {
     if (game.steamAppId && window.electronAPI?.launchSteamGame) {
       const result = await window.electronAPI.launchSteamGame(game.steamAppId);
       if (!result.success) alert("Failed to launch: " + result.error);
+      else if (window.electronAPI?.startTrackingTitle) {
+        await window.electronAPI.startTrackingTitle(game.id, game.title);
+      }
     } else if (game.localPath && window.electronAPI?.launchGame) {
-      const result = await window.electronAPI.launchGame(game.localPath, game.id);
+      const result = await window.electronAPI.launchGame(game.localPath, game.id, game.title);
       if (!result.success) alert("Failed to launch: " + result.error);
     }
   };

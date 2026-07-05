@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, shell, Menu } = require("electron");
+const { app, BrowserWindow, ipcMain, dialog, shell, Menu, Tray, nativeImage } = require("electron");
 const path = require("path");
 const http = require("http");
 const https = require("https");
@@ -9,7 +9,42 @@ const isDev = !app.isPackaged;
 function getMod(url) { return url.startsWith("https") ? https : http; }
 
 let mainWindow;
+let tray = null;
 let updateInfo = null;
+
+function createTray() {
+  const iconPath = path.join(__dirname, "../build/icon.ico");
+  let icon;
+  try {
+    icon = nativeImage.createFromPath(iconPath);
+  } catch {
+    return;
+  }
+  tray = new Tray(icon);
+  tray.setToolTip("GameVault");
+  tray.on("double-click", () => {
+    if (mainWindow) {
+      mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
+    }
+  });
+}
+
+function updatePresence() {
+  if (!mainWindow) return;
+  const entries = Array.from(trackedGames.entries());
+  if (entries.length > 0) {
+    const [gameId, track] = entries[0];
+    const elapsed = Math.round((Date.now() - track.startTime) / 60000);
+    const mins = Math.max(elapsed, 0);
+    const label = track.gameTitle || `Game #${gameId}`;
+    const status = `Playing ${label} (${mins}m session)`;
+    if (tray) tray.setToolTip(`GameVault - ${status}`);
+    mainWindow.setTitle(`GameVault - ${status}`);
+  } else {
+    if (tray) tray.setToolTip("GameVault");
+    mainWindow.setTitle("GameVault");
+  }
+}
 
 function createWindow() {
   Menu.setApplicationMenu(null);
@@ -171,12 +206,13 @@ function checkProcessAlive(pid) {
   }
 }
 
-function startTracking(gameId, exePath) {
+function startTracking(gameId, exePath, gameTitle) {
   if (trackedGames.has(gameId)) return;
-  trackedGames.set(gameId, { exePath, startTime: Date.now() });
+  trackedGames.set(gameId, { exePath, gameTitle: gameTitle || null, startTime: Date.now() });
   if (mainWindow) {
     mainWindow.webContents.send("tracking-started", gameId);
   }
+  updatePresence();
 }
 
 function stopTracking(gameId) {
@@ -184,6 +220,7 @@ function stopTracking(gameId) {
   if (!track) return 0;
   const elapsed = Math.round((Date.now() - track.startTime) / 60000);
   trackedGames.delete(gameId);
+  updatePresence();
   return Math.max(elapsed, 0);
 }
 
@@ -197,20 +234,22 @@ function getTrackedGames() {
 }
 
 setInterval(() => {
-  if (trackedGames.size === 0) return;
   if (!mainWindow) return;
-  const toRemove = [];
-  for (const [gameId, track] of trackedGames) {
-    if (!checkProcessAlive(track.pid)) {
-      toRemove.push(gameId);
+  if (trackedGames.size > 0) {
+    const toRemove = [];
+    for (const [gameId, track] of trackedGames) {
+      if (!checkProcessAlive(track.pid)) {
+        toRemove.push(gameId);
+      }
+    }
+    for (const gameId of toRemove) {
+      const minutes = stopTracking(gameId);
+      if (minutes > 0) {
+        mainWindow.webContents.send("game-time-elapsed", { gameId, minutes });
+      }
     }
   }
-  for (const gameId of toRemove) {
-    const minutes = stopTracking(gameId);
-    if (minutes > 0 && mainWindow) {
-      mainWindow.webContents.send("game-time-elapsed", { gameId, minutes });
-    }
-  }
+  updatePresence();
 }, 10000);
 
 ipcMain.handle("pick-file", async () => {
@@ -225,12 +264,12 @@ ipcMain.handle("pick-file", async () => {
   return result.filePaths[0];
 });
 
-ipcMain.handle("launch-game", async (event, exePath, gameId) => {
+ipcMain.handle("launch-game", async (event, exePath, gameId, gameTitle) => {
   try {
     const child = spawn(exePath, [], { detached: true, stdio: "ignore" });
     child.unref();
     if (gameId && child.pid) {
-      startTracking(gameId, exePath);
+      startTracking(gameId, exePath, gameTitle);
       const track = trackedGames.get(gameId);
       if (track) track.pid = child.pid;
     }
@@ -247,6 +286,13 @@ ipcMain.handle("launch-steam-game", async (event, steamAppId) => {
   } catch (err) {
     return { success: false, error: err.message };
   }
+});
+
+ipcMain.handle("start-tracking-title", async (event, gameId, gameTitle) => {
+  startTracking(gameId, null, gameTitle);
+  const track = trackedGames.get(gameId);
+  if (track) track.pid = -1;
+  return { success: true };
 });
 
 ipcMain.handle("stop-tracking", async (event, gameId) => {
@@ -331,5 +377,6 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
+    createTray();
   }
 });

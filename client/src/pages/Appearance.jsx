@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Moon, Sun, Camera, Sparkles, Check, Lock, X, Crown, Image, Type, MousePointer2, Monitor, Eye, Video, Palette } from "lucide-react";
-import { settings, auth, decorations as decorationsApi } from "../api";
+import { Moon, Sun, Camera, Sparkles, Check, Lock, X, Crown, Image, Type, MousePointer2, Monitor, Eye, Video, Palette, Gift, Dice6 } from "lucide-react";
+import { settings, auth, decorations as decorationsApi, cosmetics as cosmeticsApi } from "../api";
 import config, { resolveAssetUrl } from "../config";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import BannerCropModal from "../components/BannerCropModal";
@@ -51,6 +51,9 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
   const [reducedMotion, setReducedMotion] = useState(false);
   const [bgVideo, setBgVideo] = useState("");
   const [bgType, setBgType] = useState("gradient");
+  const [myCosmetics, setMyCosmetics] = useState([]);
+  const [crateResult, setCrateResult] = useState(null);
+  const [crateOpening, setCrateOpening] = useState(false);
 
   const isUnlocked = (themeId) => {
     if (themeId === "light" || themeId === "dark" || themeId === "midnight" || themeId === "forest") return true;
@@ -105,6 +108,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
       if (s.bgVideo) setBgVideo(s.bgVideo);
       if (s.bgType) setBgType(s.bgType);
     }).catch(console.error);
+    cosmeticsApi.listMine().then(setMyCosmetics).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -533,6 +537,82 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
                 <span className="setting-desc">Max 2MB, PNG/JPG/GIF/WebP</span>
               </div>
             </div>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="card-header">
+            <h2><Gift size={18} style={{ marginRight: "0.5rem" }} /> Loot Boxes</h2>
+          </div>
+          <div className="card-body">
+            <div className="setting-row">
+              <div className="setting-info">
+                <span className="setting-label">Crates Available: {user?.unopenedCrates ?? 0}</span>
+                <span className="setting-desc">Open crates to unlock cosmetic items. Earn them by leveling up!</span>
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+              <button className="btn btn-primary" disabled={(user?.unopenedCrates ?? 0) < 1 || crateOpening} onClick={async () => {
+                setCrateOpening(true);
+                setCrateResult(null);
+                try {
+                  const result = await cosmeticsApi.openCrate();
+                  setCrateResult(result);
+                  const [mine, me] = await Promise.all([cosmeticsApi.listMine(), auth.me()]);
+                  setMyCosmetics(mine);
+                  onUserUpdate(me);
+                } catch (err) {
+                  setCrateResult({ error: err.message });
+                }
+                setCrateOpening(false);
+              }}>
+                <Dice6 size={16} /> {crateOpening ? "Opening..." : "Open Crate"}
+              </button>
+              <button className="btn btn-secondary" onClick={async () => {
+                const mine = await cosmeticsApi.listMine();
+                setMyCosmetics(mine);
+              }}>
+                Refresh Collection
+              </button>
+            </div>
+            {crateResult && !crateResult.error && (
+              <div className={`crate-result ${crateResult.cosmetic.rarity}`} style={{
+                marginTop: "1rem", padding: "1rem", borderRadius: "var(--radius)", border: "1px solid var(--border)",
+                background: crateResult.wasNew ? "var(--accent-bg)" : "var(--bg-secondary)",
+              }}>
+                <p><strong>{crateResult.wasNew ? "NEW!" : "Duplicate"}</strong> &mdash; {crateResult.cosmetic.name}</p>
+                <p className="setting-desc">Rarity: {crateResult.cosmetic.rarity} &middot; Type: {crateResult.cosmetic.type.replace("_", " ")}</p>
+                {crateResult.cosmetic.unlockMessage && <p className="setting-desc" style={{ fontStyle: "italic" }}>"{crateResult.cosmetic.unlockMessage}"</p>}
+              </div>
+            )}
+            {crateResult?.error && (
+              <div className="crate-result error" style={{ marginTop: "1rem", color: "var(--danger)" }}>
+                {crateResult.error}
+              </div>
+            )}
+            {myCosmetics.length > 0 && (
+              <div style={{ marginTop: "1.5rem" }}>
+                <h3 style={{ marginBottom: "0.75rem" }}>Your Cosmetics ({myCosmetics.length})</h3>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.5rem" }}>
+                  {myCosmetics.map((uc) => (
+                    <div key={uc.id} className={`cosmetic-item ${uc.equipped ? "cosmetic-equipped" : ""}`} style={{
+                      padding: "0.75rem", borderRadius: "var(--radius)", border: uc.equipped ? "2px solid var(--accent)" : "1px solid var(--border)",
+                      background: "var(--bg-secondary)", cursor: "pointer",
+                    }} onClick={async () => {
+                      await cosmeticsApi.toggleEquip(uc.id);
+                      const mine = await cosmeticsApi.listMine();
+                      setMyCosmetics(mine);
+                    }}>
+                      <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{uc.cosmetic.name}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                        {uc.cosmetic.rarity} &middot; {uc.cosmetic.type.replace("_", " ")}
+                      </div>
+                      {uc.equipped && <div style={{ fontSize: "0.7rem", color: "var(--accent)", marginTop: "0.25rem" }}>Equipped</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

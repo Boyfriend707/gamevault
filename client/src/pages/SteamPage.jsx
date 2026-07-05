@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Gamepad2, RefreshCw, Link2, Unlink } from "lucide-react";
+import { Gamepad2, RefreshCw, Link2, Unlink, Award } from "lucide-react";
 import { steam } from "../api";
 
 function SteamPage() {
   const [status, setStatus] = useState(null);
   const [syncing, setSyncing] = useState(false);
+  const [syncingAch, setSyncingAch] = useState(false);
+  const [achResult, setAchResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -93,11 +95,34 @@ function SteamPage() {
                 <RefreshCw size={16} className={syncing ? "spin" : ""} />
                 {syncing ? "Syncing..." : "Sync Games"}
               </button>
+              <button className="btn btn-secondary" onClick={async () => {
+                setSyncingAch(true);
+                setAchResult(null);
+                try {
+                  const res = await steam.syncAchievements();
+                  setAchResult(res);
+                } catch (err) {
+                  setAchResult({ error: err.message });
+                }
+                setSyncingAch(false);
+              }} disabled={syncingAch}>
+                <Award size={16} />
+                {syncingAch ? "Syncing..." : "Sync Achievements"}
+              </button>
               <button className="btn btn-secondary btn-danger" onClick={handleUnlink}>
                 <Unlink size={16} />
                 Unlink Steam
               </button>
             </div>
+            {achResult && (
+              <div className="steam-ach-result" style={{ marginTop: "0.75rem", padding: "0.75rem", borderRadius: "var(--radius)", background: "var(--bg-secondary)" }}>
+                {achResult.error ? (
+                  <span style={{ color: "var(--danger)" }}>{achResult.error}</span>
+                ) : (
+                  <span>Found {achResult.total} achievements, {achResult.new} new badges awarded</span>
+                )}
+              </div>
+            )}
             {status.lastSynced && (
               <p className="steam-last-synced">
                 Last synced: {new Date(status.lastSynced).toLocaleString()}

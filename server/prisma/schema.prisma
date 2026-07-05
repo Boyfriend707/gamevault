@@ -28,6 +28,8 @@ model User {
   birthday     DateTime?
   statusMessage String?
   statusEmoji  String?
+  level        Int     @default(1)
+  unopenedCrates Int   @default(0)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -57,6 +59,7 @@ model User {
   messageReports   MessageReport[] @relation("ReportedBy")
   resolvedReports  MessageReport[] @relation("ResolvedBy")
   dailyProgress    DailyChallengeProgress[]
+  userCosmetics    UserCosmetic[]
 }
 
 model Conversation {
@@ -397,4 +400,26 @@ model DailyChallengeProgress {
   dailyChallenge   DailyChallenge @relation(fields: [dailyChallengeId], references: [id], onDelete: Cascade)
   user             User           @relation(fields: [userId], references: [id])
   @@unique([dailyChallengeId, userId])
+}
+
+model CosmeticItem {
+  id            Int      @id @default(autoincrement())
+  name          String
+  type          String   // profile_frame, chat_bubble, name_color, badge_variant
+  rarity        String   // common, uncommon, rare, epic, legendary
+  imageUrl      String?
+  unlockMessage String?
+  createdAt     DateTime @default(now())
+  users         UserCosmetic[]
+}
+
+model UserCosmetic {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  cosmeticId  Int
+  equipped    Boolean  @default(false)
+  unlockedAt  DateTime @default(now())
+  user        User     @relation(fields: [userId], references: [id])
+  cosmetic    CosmeticItem @relation(fields: [cosmeticId], references: [id])
+  @@unique([userId, cosmeticId])
 }

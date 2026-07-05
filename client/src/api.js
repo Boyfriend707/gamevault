@@ -182,6 +182,7 @@ export const steam = {
   getLinkUrl: () => request("/steam/link-url"),
   getStatus: () => request("/steam/status"),
   sync: () => request("/steam/sync", { method: "POST" }),
+  syncAchievements: () => request("/steam/sync-achievements", { method: "POST" }),
   unlink: () => request("/steam/unlink", { method: "DELETE" }),
 };
 
@@ -286,6 +287,15 @@ export const challenges = {
 export const dailyChallenges = {
   check: () => request("/daily-challenges/check", { method: "POST" }),
   list: () => request("/daily-challenges"),
+};
+
+export const cosmetics = {
+  listAll: () => request("/cosmetics"),
+  listMine: () => request("/cosmetics/mine"),
+  openCrate: () => request("/cosmetics/open-crate", { method: "POST" }),
+  toggleEquip: (id) => request(`/cosmetics/${id}/equip`, { method: "PUT" }),
+  adminCreate: (data, token) => request("/cosmetics", { method: "POST", body: JSON.stringify(data), headers: { Authorization: `Bearer ${token}` } }),
+  adminSeed: (token) => request("/cosmetics/seed", { method: "POST", headers: { Authorization: `Bearer ${token}` } }),
 };
 
 export const settings = {

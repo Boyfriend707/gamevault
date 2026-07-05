@@ -34,6 +34,7 @@ import challengesRoutes from "./routes/challenges.js";
 import dailyChallengesRoutes from "./routes/dailyChallenges.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import vibesRoutes from "./routes/vibes.js";
+import cosmeticsRoutes from "./routes/cosmetics.js";
 import { authenticateToken } from "./middleware/auth.js";
 
 const app = express();
@@ -84,6 +85,7 @@ app.use("/api/challenges", challengesRoutes);
 app.use("/api/daily-challenges", dailyChallengesRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 app.use("/api/vibes", vibesRoutes);
+app.use("/api/cosmetics", cosmeticsRoutes);
 app.post("/api/avatar", authenticateToken, upload.single("avatar"), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ error: "No file uploaded" });

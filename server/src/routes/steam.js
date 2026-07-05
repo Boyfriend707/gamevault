@@ -155,6 +155,83 @@ router.post("/sync", authenticateToken, async (req, res) => {
   }
 });
 
+function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
+
+router.post("/sync-achievements", authenticateToken, async (req, res) => {
+  try {
+    const link = await prisma.steamLink.findUnique({ where: { userId: req.userId } });
+    if (!link) return res.status(400).json({ error: "No Steam account linked" });
+
+    if (!STEAM_API_KEY) return res.status(400).json({ error: "Steam API key not configured" });
+
+    const games = await prisma.game.findMany({
+      where: { userId: req.userId, steamAppId: { not: null } },
+      select: { id: true, steamAppId: true, name: true },
+    });
+
+    if (games.length === 0) return res.json({ message: "No Steam games in collection", total: 0, new: 0 });
+
+    let totalAchievements = 0;
+    let newBadges = 0;
+
+    for (const game of games) {
+      try {
+        await sleep(500);
+        const resp = await axios.get(
+          "https://api.steampowered.com/ISteamUserStats/GetPlayerAchievements/v0001/",
+          { params: { appid: game.steamAppId, key: STEAM_API_KEY, steamid: link.steamId } }
+        );
+
+        const achievements = resp.data?.playerstats?.achievements || [];
+        for (const ach of achievements) {
+          if (ach.achieved === 1) {
+            totalAchievements++;
+            const badgeName = `ACH: ${game.name} - ${ach.name}`;
+            const badgeApiName = `steam_ach_${game.steamAppId}_${ach.apiname || ach.name}`.replace(/[^a-zA-Z0-9_]/g, "_").substring(0, 100);
+
+            let badge = await prisma.badge.findUnique({ where: { name: badgeApiName } });
+            if (!badge) {
+              badge = await prisma.badge.create({
+                data: {
+                  name: badgeApiName,
+                  iconUrl: null,
+                  description: `Earned "${ach.name}" in ${game.name}`,
+                  isSystemBadge: true,
+                },
+              });
+            }
+
+            const existing = await prisma.userBadge.findUnique({
+              where: { userId_badgeId: { userId: req.userId, badgeId: badge.id } },
+            });
+            if (!existing) {
+              await prisma.userBadge.create({
+                data: { userId: req.userId, badgeId: badge.id },
+              });
+              newBadges++;
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`Failed to fetch achievements for ${game.name} (app ${game.steamAppId}):`, e.message);
+      }
+    }
+
+    await prisma.steamLink.update({
+      where: { userId: req.userId },
+      data: { lastSynced: new Date(), syncCount: { increment: 1 } },
+    });
+
+    if (newBadges > 0) {
+      await awardXP(req.userId, newBadges * 10);
+    }
+
+    res.json({ message: "Achievements synced", total: totalAchievements, new: newBadges });
+  } catch (error) {
+    res.status(500).json({ error: "Achievement sync failed" });
+  }
+});
+
 router.delete("/unlink", authenticateToken, async (req, res) => {
   try {
     await prisma.steamLink.deleteMany({ where: { userId: req.userId } });

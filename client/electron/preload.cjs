@@ -12,8 +12,9 @@ contextBridge.exposeInMainWorld("electronAPI", {
     ipcRenderer.on("update-download-progress", (_, progress) => callback(progress));
   },
   pickFile: () => ipcRenderer.invoke("pick-file"),
-  launchGame: (exePath, gameId) => ipcRenderer.invoke("launch-game", exePath, gameId),
+  launchGame: (exePath, gameId, gameTitle) => ipcRenderer.invoke("launch-game", exePath, gameId, gameTitle),
   launchSteamGame: (steamAppId) => ipcRenderer.invoke("launch-steam-game", steamAppId),
+  startTrackingTitle: (gameId, gameTitle) => ipcRenderer.invoke("start-tracking-title", gameId, gameTitle),
   stopTracking: (gameId) => ipcRenderer.invoke("stop-tracking", gameId),
   onGameTimeElapsed: (callback) => {
     const handler = (_, data) => callback(data);

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { PrismaClient } from "@prisma/client";
 import { authenticateToken } from "../middleware/auth.js";
+import { awardXP } from "../xp.js";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -129,10 +130,7 @@ router.post("/check", async (req, res) => {
         });
         // Award XP on first completion
         if (completed && !wasCompleted) {
-          await prisma.user.update({
-            where: { id: req.userId },
-            data: { xp: { increment: challenge.xpReward } },
-          });
+          await awardXP(req.userId, challenge.xpReward);
         }
       } else {
         await prisma.dailyChallengeProgress.create({
@@ -140,10 +138,7 @@ router.post("/check", async (req, res) => {
         });
         // Award XP if already completed on creation
         if (completed) {
-          await prisma.user.update({
-            where: { id: req.userId },
-            data: { xp: { increment: challenge.xpReward } },
-          });
+          await awardXP(req.userId, challenge.xpReward);
         }
       }
 
