@@ -3,7 +3,7 @@ const path = require("path");
 const http = require("http");
 const https = require("https");
 const fs = require("fs");
-const { execFile, spawn } = require("child_process");
+const { spawn } = require("child_process");
 
 const isDev = !app.isPackaged;
 function getMod(url) { return url.startsWith("https") ? https : http; }
@@ -194,10 +194,9 @@ ipcMain.handle("open-devtools", () => {
 
 ipcMain.handle("install-update", async (event, installerPath) => {
   try {
-    execFile(installerPath, ["/S"], (err) => {
-      if (err) console.error("Install failed:", err);
-    });
-    app.quit();
+    const child = spawn(installerPath, ["/S"], { detached: true, stdio: "ignore" });
+    child.unref();
+    app.exit(0);
     return { success: true };
   } catch (err) {
     return { success: false, error: err.message };
