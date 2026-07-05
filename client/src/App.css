@@ -3143,6 +3143,118 @@ select.input { width: 100%; }
   gap: 0.3rem;
 }
 
+/* ========== Chat Poll ========== */
+.chat-poll {
+  margin-top: 0.4rem;
+  min-width: 220px;
+}
+.chat-poll-header {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent);
+  margin-bottom: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.chat-poll-question {
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  font-size: 0.9rem;
+}
+.chat-poll-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.chat-poll-option {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  font-size: 0.82rem;
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  transition: border-color 0.15s;
+}
+.chat-poll-option:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+.chat-poll-option:disabled {
+  cursor: default;
+  opacity: 0.9;
+}
+.chat-poll-option-selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+.chat-poll-bar {
+  position: absolute;
+  inset: 0;
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+  border-radius: inherit;
+  transition: width 0.3s ease;
+  pointer-events: none;
+}
+.chat-poll-option-text {
+  position: relative;
+  z-index: 1;
+}
+.chat-poll-option-count {
+  position: relative;
+  z-index: 1;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+.chat-poll-footer {
+  margin-top: 0.3rem;
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  display: flex;
+  gap: 0.25rem;
+}
+.chat-poll-form {
+  padding: 0.75rem;
+  border-top: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: var(--card-bg);
+}
+.chat-poll-form-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+.chat-poll-option-row {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+.chat-poll-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.chat-poll-form-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.2rem;
+}
+
 /* ========== Chat Typing Indicator ========== */
 .chat-typing {
   padding: 0.3rem 1rem;

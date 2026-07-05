@@ -1,6 +1,6 @@
 {
   "name": "gamevault-client",
-  "version": "1.2.6",
+  "version": "1.2.7",
   "description": "GameVault - Gaming Dashboard",
   "private": true,
   "type": "module",

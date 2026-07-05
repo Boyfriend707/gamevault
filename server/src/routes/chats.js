@@ -17,7 +17,7 @@ router.get("/", async (req, res) => {
       where: { participants: { some: { userId: req.userId } } },
       include: {
         participants: { include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true, role: true, status: true } } } },
-        messages: { orderBy: { createdAt: "desc" }, take: 1, include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true } } } },
+        messages: { orderBy: { createdAt: "desc" }, take: 1, include: { user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true } }, poll: { select: { question: true } } } },
       },
       orderBy: { updatedAt: "desc" },
     });
@@ -84,6 +84,7 @@ router.get("/:id/messages", async (req, res) => {
       include: {
         user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true } },
         replyTo: { select: { id: true, content: true, imageUrl: true, userId: true, user: { select: { id: true, username: true, displayName: true } } } },
+        poll: { include: { votes: { select: { id: true, userId: true, optionId: true } } } },
       },
     });
     res.json(messages);
@@ -109,6 +110,7 @@ router.get("/:id/search", async (req, res) => {
       include: {
         user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true } },
         replyTo: { select: { id: true, content: true, imageUrl: true, userId: true } },
+        poll: { include: { votes: { select: { id: true, userId: true, optionId: true } } } },
       },
     });
     res.json(messages);
@@ -117,7 +119,7 @@ router.get("/:id/search", async (req, res) => {
   }
 });
 
-// POST /chats/:id/messages -- Send a message
+// POST /chats/:id/messages -- Send a message (text or poll)
 router.post("/:id/messages", async (req, res) => {
   try {
     const convoId = parseInt(req.params.id);
@@ -125,13 +127,20 @@ router.post("/:id/messages", async (req, res) => {
       where: { conversationId_userId: { conversationId: convoId, userId: req.userId } },
     });
     if (!participant) return res.status(403).json({ error: "Not a participant" });
-    const { content, replyToId } = req.body;
-    if (!content && !replyToId) return res.status(400).json({ error: "Content required" });
+    const { content, replyToId, poll } = req.body;
+    if (!content && !replyToId && !poll) return res.status(400).json({ error: "Content or poll required" });
     const msg = await prisma.message.create({
-      data: { content: content || "", conversationId: convoId, userId: req.userId, replyToId: replyToId ? parseInt(replyToId) : undefined },
+      data: {
+        content: content || "",
+        conversationId: convoId,
+        userId: req.userId,
+        replyToId: replyToId ? parseInt(replyToId) : undefined,
+        ...(poll ? { poll: { create: { question: poll.question, options: JSON.stringify(poll.options), allowMultiple: poll.allowMultiple || false, closesAt: poll.closesAt ? new Date(poll.closesAt) : undefined } } } : {}),
+      },
       include: {
         user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true } },
         replyTo: { select: { id: true, content: true, imageUrl: true, userId: true, user: { select: { id: true, username: true, displayName: true } } } },
+        poll: { include: { votes: { select: { id: true, userId: true, optionId: true } } } },
       },
     });
     await prisma.conversation.update({ where: { id: convoId }, data: { updatedAt: new Date() } });
@@ -156,12 +165,48 @@ router.post("/:id/images", upload.single("image"), async (req, res) => {
       include: {
         user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true } },
         replyTo: { select: { id: true, content: true, imageUrl: true, userId: true, user: { select: { id: true, username: true, displayName: true } } } },
+        poll: { include: { votes: { select: { id: true, userId: true, optionId: true } } } },
       },
     });
     await prisma.conversation.update({ where: { id: convoId }, data: { updatedAt: new Date() } });
     res.json(msg);
   } catch (error) {
     res.status(500).json({ error: "Failed to upload image" });
+  }
+});
+
+// POST /chats/messages/:messageId/vote -- Vote on a poll
+router.post("/messages/:messageId/vote", async (req, res) => {
+  try {
+    const messageId = parseInt(req.params.messageId);
+    const msg = await prisma.message.findUnique({ where: { id: messageId }, include: { poll: true } });
+    if (!msg || !msg.poll) return res.status(404).json({ error: "Poll not found" });
+    if (msg.poll.closesAt && new Date() > msg.poll.closesAt) return res.status(400).json({ error: "Poll has closed" });
+    const userId = req.userId;
+    const { optionId } = req.body;
+    if (!optionId) return res.status(400).json({ error: "optionId required" });
+    const options = JSON.parse(msg.poll.options);
+    if (!options.some((o) => o.id === optionId)) return res.status(400).json({ error: "Invalid option" });
+    if (!msg.poll.allowMultiple) {
+      const existing = await prisma.pollVote.findFirst({ where: { pollId: msg.poll.id, userId } });
+      if (existing) return res.status(400).json({ error: "Already voted" });
+    } else {
+      const existing = await prisma.pollVote.findUnique({ where: { pollId_userId_optionId: { pollId: msg.poll.id, userId, optionId } } });
+      if (existing) return res.status(400).json({ error: "Already voted for this option" });
+    }
+    await prisma.pollVote.create({ data: { pollId: msg.poll.id, userId, optionId } });
+    const updated = await prisma.message.findUnique({
+      where: { id: messageId },
+      include: {
+        user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true } },
+        replyTo: { select: { id: true, content: true, imageUrl: true, userId: true } },
+        poll: { include: { votes: { select: { id: true, userId: true, optionId: true } } } },
+      },
+    });
+    res.json(updated);
+  } catch (error) {
+    if (error.code === "P2002") return res.status(400).json({ error: "Already voted" });
+    res.status(500).json({ error: "Failed to vote" });
   }
 });
 

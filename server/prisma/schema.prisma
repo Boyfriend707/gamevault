@@ -46,6 +46,7 @@ model User {
   badges           UserBadge[]
   createdBadges    Badge[]      @relation("CreatedBadges")
   awardedBadges    UserBadge[]  @relation("AwardedBadges")
+  pollVotes        PollVote[]
   dailyProgress    DailyChallengeProgress[]
 }
 
@@ -83,6 +84,30 @@ model Message {
   user           User         @relation(fields: [userId], references: [id])
   replyTo        Message?    @relation("MessageReply", fields: [replyToId], references: [id])
   replies        Message[]   @relation("MessageReply")
+  poll           ChatPoll?
+}
+
+model ChatPoll {
+  id            Int      @id @default(autoincrement())
+  messageId     Int      @unique
+  question      String
+  options       String   // JSON array of {id,text}
+  allowMultiple Boolean  @default(false)
+  closesAt      DateTime?
+  createdAt     DateTime @default(now())
+  message       Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  votes         PollVote[]
+}
+
+model PollVote {
+  id        Int      @id @default(autoincrement())
+  pollId    Int
+  userId    Int
+  optionId  String
+  createdAt DateTime @default(now())
+  poll      ChatPoll @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id])
+  @@unique([pollId, userId, optionId])
 }
 
 model FriendRequest {

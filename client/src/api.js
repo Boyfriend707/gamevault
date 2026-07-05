@@ -227,7 +227,8 @@ export const chats = {
   list: () => request("/chats"),
   createOrGet: (userId) => request("/chats", { method: "POST", body: JSON.stringify({ userId }) }),
   getMessages: (convoId, after) => request(`/chats/${convoId}/messages${after ? `?after=${after}` : ""}`),
-  sendMessage: (convoId, content, replyToId) => request(`/chats/${convoId}/messages`, { method: "POST", body: JSON.stringify({ content, replyToId }) }),
+  sendMessage: (convoId, content, replyToId, poll) => request(`/chats/${convoId}/messages`, { method: "POST", body: JSON.stringify({ content, replyToId, poll }) }),
+  votePoll: (messageId, optionId) => request(`/chats/messages/${messageId}/vote`, { method: "POST", body: JSON.stringify({ optionId }) }),
   uploadImage: (convoId, file) => {
     const formData = new FormData();
     formData.append("image", file);

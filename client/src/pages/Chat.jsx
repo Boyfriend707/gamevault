@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Send, ArrowLeft, Image, Smile, Edit2, Trash2, Reply, Search, X } from "lucide-react";
+import { MessageSquare, Send, ArrowLeft, Image, Smile, Edit2, Trash2, Reply, Search, X, BarChart3, Plus, Minus, Vote } from "lucide-react";
 import { chats as chatsApi } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
@@ -27,6 +27,10 @@ function Chat({ user }) {
   const [searchResults, setSearchResults] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [typingText, setTypingText] = useState("");
+  const [showPollForm, setShowPollForm] = useState(false);
+  const [pollQuestion, setPollQuestion] = useState("");
+  const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
   const messagesEndRef = useRef(null);
   const pollRef = useRef(null);
   const typingRef = useRef(null);
@@ -141,6 +145,29 @@ function Chat({ user }) {
     setShowEmoji(null);
   };
 
+  const handleVote = async (messageId, optionId) => {
+    try {
+      const updated = await chatsApi.votePoll(messageId, optionId);
+      setMessages((prev) => prev.map((m) => m.id === messageId ? updated : m));
+    } catch (err) { console.error(err); }
+  };
+
+  const sendPoll = async () => {
+    if (!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2 || !selectedConvo) return;
+    const options = pollOptions.filter((o) => o.trim()).map((text, i) => ({ id: `opt_${i}`, text }));
+    try {
+      const msg = await chatsApi.sendMessage(selectedConvo.id, "", null, { question: pollQuestion, options, allowMultiple: pollAllowMultiple });
+      setMessages((prev) => [...prev, msg]);
+      setPollQuestion("");
+      setPollOptions(["", ""]);
+      setPollAllowMultiple(false);
+      setShowPollForm(false);
+      setConversations((prev) => prev.map((c) =>
+        c.id === selectedConvo.id ? { ...c, lastMessage: msg } : c
+      ));
+    } catch (err) { console.error(err); }
+  };
+
   const handleTyping = async () => {
     if (!selectedConvo) return;
     try {
@@ -182,6 +209,44 @@ function Chat({ user }) {
   const canModify = (msg) => {
     return msg.userId === user.id && !msg.deletedAt && (Date.now() - new Date(msg.createdAt).getTime() < 5 * 60 * 1000);
   };
+
+  function PollMessage({ msg }) {
+    const poll = msg.poll;
+    if (!poll) return null;
+    const options = JSON.parse(poll.options);
+    const totalVotes = poll.votes.length;
+    const myVotes = poll.votes.filter((v) => v.userId === user.id).map((v) => v.optionId);
+    const hasVoted = myVotes.length > 0;
+    const closed = poll.closesAt && new Date(poll.closesAt) < new Date();
+    return (
+      <div className="chat-poll">
+        <div className="chat-poll-header"><BarChart3 size={14} /> Poll</div>
+        <div className="chat-poll-question">{poll.question}</div>
+        <div className="chat-poll-options">
+          {options.map((opt) => {
+            const count = poll.votes.filter((v) => v.optionId === opt.id).length;
+            const pct = totalVotes > 0 ? Math.round((count / totalVotes) * 100) : 0;
+            const selected = myVotes.includes(opt.id);
+            return (
+              <button key={opt.id}
+                className={`chat-poll-option ${selected ? "chat-poll-option-selected" : ""} ${(hasVoted || closed) ? "chat-poll-option-results" : ""}`}
+                onClick={() => !hasVoted && !closed && handleVote(msg.id, opt.id)}
+                disabled={hasVoted || closed}>
+                {(hasVoted || closed) && <div className="chat-poll-bar" style={{ width: `${pct}%` }} />}
+                <span className="chat-poll-option-text">{opt.text}</span>
+                {(hasVoted || closed) && <span className="chat-poll-option-count">{count} ({pct}%)</span>}
+              </button>
+            );
+          })}
+        </div>
+        <div className="chat-poll-footer">
+          <span>{totalVotes} vote{totalVotes !== 1 ? "s" : ""}</span>
+          {closed && <span> · Closed</span>}
+          {poll.allowMultiple && <span> · Multiple choice</span>}
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return <div className="page"><div className="loading-spinner" /></div>;
@@ -301,6 +366,7 @@ function Chat({ user }) {
                                 )}
                                 {msg.content && <span>{msg.content}</span>}
                                 {msg.editedAt && <span className="chat-msg-edited"> (edited)</span>}
+                                <PollMessage msg={msg} />
                               </>
                             )}
 
@@ -366,17 +432,62 @@ function Chat({ user }) {
                 </div>
               )}
 
-              <form className="chat-input" onSubmit={sendMessage}>
-                <input type="file" ref={fileInputRef} style={{ display: "none" }} accept="image/*" onChange={handleImageUpload} />
-                <button type="button" className="btn-icon" onClick={() => fileInputRef.current?.click()} title="Send image">
-                  <Image size={18} />
-                </button>
-                <input type="text" value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }}
-                  placeholder="Type a message..." className="chat-input-field" />
-                <button type="submit" className="btn btn-primary" disabled={!input.trim()}>
-                  <Send size={16} />
-                </button>
-              </form>
+              {showPollForm ? (
+                <div className="chat-poll-form">
+                  <div className="chat-poll-form-header">
+                    <span>Create a Poll</span>
+                    <button className="btn-icon" onClick={() => { setShowPollForm(false); setPollQuestion(""); setPollOptions(["", ""]); }}>
+                      <X size={14} />
+                    </button>
+                  </div>
+                  <input type="text" value={pollQuestion} onChange={(e) => setPollQuestion(e.target.value)}
+                    placeholder="Ask a question..." className="chat-input-field" />
+                  {pollOptions.map((opt, i) => (
+                    <div key={i} className="chat-poll-option-row">
+                      <input type="text" value={opt} onChange={(e) => {
+                        const copy = [...pollOptions];
+                        copy[i] = e.target.value;
+                        setPollOptions(copy);
+                      }} placeholder={`Option ${i + 1}`} className="chat-input-field" />
+                      {pollOptions.length > 2 && (
+                        <button className="btn-icon" onClick={() => setPollOptions(pollOptions.filter((_, j) => j !== i))}>
+                          <Minus size={14} />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                  {pollOptions.length < 6 && (
+                    <button className="btn btn-sm" onClick={() => setPollOptions([...pollOptions, ""])}>
+                      <Plus size={14} /> Add option
+                    </button>
+                  )}
+                  <label className="chat-poll-checkbox">
+                    <input type="checkbox" checked={pollAllowMultiple} onChange={(e) => setPollAllowMultiple(e.target.checked)} />
+                    Allow multiple choices
+                  </label>
+                  <div className="chat-poll-form-actions">
+                    <button className="btn btn-primary btn-sm" onClick={sendPoll}
+                      disabled={!pollQuestion.trim() || pollOptions.filter((o) => o.trim()).length < 2}>
+                      <Vote size={14} /> Send Poll
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <form className="chat-input" onSubmit={sendMessage}>
+                  <input type="file" ref={fileInputRef} style={{ display: "none" }} accept="image/*" onChange={handleImageUpload} />
+                  <button type="button" className="btn-icon" onClick={() => fileInputRef.current?.click()} title="Send image">
+                    <Image size={18} />
+                  </button>
+                  <button type="button" className="btn-icon" onClick={() => setShowPollForm(true)} title="Create poll">
+                    <BarChart3 size={18} />
+                  </button>
+                  <input type="text" value={input} onChange={(e) => { setInput(e.target.value); handleTyping(); }}
+                    placeholder="Type a message..." className="chat-input-field" />
+                  <button type="submit" className="btn btn-primary" disabled={!input.trim()}>
+                    <Send size={16} />
+                  </button>
+                </form>
+              )}
             </>
           )}
         </div>
