@@ -209,16 +209,15 @@ app.get("/api/steam-cover/:appId", async (req, res) => {
     try {
       const resp = await fetch(url);
       if (resp.ok) {
+        const buf = Buffer.from(await resp.arrayBuffer());
         res.setHeader("Content-Type", resp.headers.get("content-type") || "image/jpeg");
-        resp.body.pipe(res);
+        res.setHeader("Content-Length", buf.length);
+        res.end(buf);
         return;
       }
     } catch {}
   }
-  const pixel = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
-  res.setHeader("Content-Type", "image/png");
-  res.setHeader("Cache-Control", "public, max-age=86400");
-  res.send(pixel);
+  res.status(204).end();
 });
 
 app.get("/api/update", (req, res) => {

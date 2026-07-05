@@ -223,7 +223,7 @@ function Profile({ user: currentUser }) {
               <div className="currently-playing-list">
                 {playingGames.map((g) => (
                   <div key={g.id} className="currently-playing-item" onClick={() => navigate(`/game/${g.id}`)} style={{ cursor: "pointer" }}>
-                    {g.coverUrl ? <img src={resolveCoverUrl(g.coverUrl)} alt="" className="currently-playing-cover" /> : <Gamepad2 size={32} className="currently-playing-icon" />}
+                    {g.coverUrl ? <img src={resolveCoverUrl(g.coverUrl)} alt="" className="currently-playing-cover" onLoad={(e) => { if (e.target.naturalWidth === 0) e.target.style.display = "none"; }} onError={(e) => { e.target.style.display = "none"; }} /> : <Gamepad2 size={32} className="currently-playing-icon" />}
                     <span className="currently-playing-name">{g.name}</span>
                   </div>
                 ))}

@@ -11,6 +11,7 @@ function getMod(url) { return url.startsWith("https") ? https : http; }
 let mainWindow;
 let tray = null;
 let updateInfo = null;
+let presenceInterval;
 
 function createTray() {
   const iconPath = path.join(__dirname, "../build/icon.ico");
@@ -75,7 +76,8 @@ function createWindow() {
     mainWindow.show();
   });
 
-  mainWindow.on("close", () => {
+  mainWindow.on("close", (e) => {
+    if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
     if (tray) { try { tray.destroy(); } catch {} tray = null; }
   });
 
@@ -240,7 +242,7 @@ function getTrackedGames() {
   return result;
 }
 
-setInterval(() => {
+presenceInterval = setInterval(() => {
   if (!mainWindow) return;
   if (trackedGames.size > 0) {
     const toRemove = [];
@@ -377,8 +379,9 @@ app.whenReady().then(createWindow);
 
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
+    if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
     if (tray) { try { tray.destroy(); } catch {} tray = null; }
-    app.quit();
+    app.exit(0);
   }
 });
 

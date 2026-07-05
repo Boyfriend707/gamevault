@@ -391,7 +391,7 @@ function Collection() {
             return (
               <div key={game.id} className="game-list-row" onClick={() => navigate(`/game/${game.id}`)}>
                 <div className="game-list-cell game-list-cell-cover">
-                  {game.coverUrl ? <img className="game-list-thumb" src={resolveCoverUrl(game.coverUrl)} alt="" onError={(e) => { e.target.style.display = "none"; }} /> : <Gamepad2 size={24} />}
+                  {game.coverUrl ? <img className="game-list-thumb" src={resolveCoverUrl(game.coverUrl)} alt="" onLoad={(e) => { if (e.target.naturalWidth === 0) e.target.style.display = "none"; }} onError={(e) => { e.target.style.display = "none"; }} /> : <Gamepad2 size={24} />}
                 </div>
                 <div className="game-list-cell"><span className="game-list-name">{game.name}</span></div>
                 <div className="game-list-cell"><span className="game-list-platform">{game.platform}</span></div>
@@ -424,7 +424,7 @@ function Collection() {
             return (
             <div key={game.id} className="game-card" style={cardStyle} onClick={() => navigate(`/game/${game.id}`)}>
               <div className="game-status-bar" data-status={game.status} />
-              {game.coverUrl && <img className="game-cover" src={resolveCoverUrl(game.coverUrl)} alt="" onError={(e) => { e.target.style.display = "none"; }} />}
+              {game.coverUrl && <img className="game-cover" src={resolveCoverUrl(game.coverUrl)} alt="" onLoad={(e) => { if (e.target.naturalWidth === 0) e.target.style.display = "none"; }} onError={(e) => { e.target.style.display = "none"; }} />}
               <div className="game-card-content">
                 <h3 className="game-name">{game.name}</h3>
                 <span className="game-platform">{game.platform}</span>
