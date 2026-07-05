@@ -1,5 +1,5 @@
 {
-    "installer":  "GameVault Setup 1.3.2.exe",
-    "version":  "1.3.2",
-    "notes":  "Rich Presence (tray tooltip + window title), Loot Box Cosmetic Unlocks, Achievement Hunter Badge Sync"
+    "installer":  "GameVault Setup 1.3.3.exe",
+    "version":  "1.3.3",
+    "notes":  "Fix: Steam cover proxy (was returning black pixel, no pipe support for web streams), Fix: app not fully exiting on close (interval cleanup + app.exit), Fix: Settings 403 on badges, Fix: broken cover images in list view"
 }
