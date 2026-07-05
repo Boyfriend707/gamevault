@@ -48,4 +48,11 @@ export function resolveAssetUrl(url) {
   return `${config.SERVER_URL}${url}`;
 }
 
+export function resolveCoverUrl(url) {
+  if (!url) return null;
+  const m = url.match(/\/apps\/(\d+)\//);
+  if (m) return `${config.SERVER_URL}/api/steam-cover/${m[1]}`;
+  return resolveAssetUrl(url);
+}
+
 export default config;

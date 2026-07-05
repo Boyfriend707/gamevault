@@ -4,7 +4,7 @@ import { ArrowLeft, Gamepad2, PlayCircle, CheckCircle2, Clock, Timer, Trophy, Pe
 import { friends, games as gamesApi, chats as chatsApi, users as usersApi, settings as settingsApi, usersApi2 } from "../api";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
-import config, { resolveAssetUrl } from "../config";
+import config, { resolveAssetUrl, resolveCoverUrl } from "../config";
 
 function calcLevel(xp) { return Math.floor(Math.pow(xp / 100, 0.6)); }
 
@@ -223,7 +223,7 @@ function Profile({ user: currentUser }) {
               <div className="currently-playing-list">
                 {playingGames.map((g) => (
                   <div key={g.id} className="currently-playing-item" onClick={() => navigate(`/game/${g.id}`)} style={{ cursor: "pointer" }}>
-                    {g.coverUrl ? <img src={resolveAssetUrl(g.coverUrl)} alt="" className="currently-playing-cover" /> : <Gamepad2 size={32} className="currently-playing-icon" />}
+                    {g.coverUrl ? <img src={resolveCoverUrl(g.coverUrl)} alt="" className="currently-playing-cover" /> : <Gamepad2 size={32} className="currently-playing-icon" />}
                     <span className="currently-playing-name">{g.name}</span>
                   </div>
                 ))}

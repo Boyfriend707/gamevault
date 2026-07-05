@@ -199,6 +199,28 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+app.get("/api/steam-cover/:appId", async (req, res) => {
+  const { appId } = req.params;
+  const urls = [
+    `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900.jpg`,
+    `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/library_600x900.jpg`,
+  ];
+  for (const url of urls) {
+    try {
+      const resp = await fetch(url);
+      if (resp.ok) {
+        res.setHeader("Content-Type", resp.headers.get("content-type") || "image/jpeg");
+        resp.body.pipe(res);
+        return;
+      }
+    } catch {}
+  }
+  const pixel = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64");
+  res.setHeader("Content-Type", "image/png");
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.send(pixel);
+});
+
 app.get("/api/update", (req, res) => {
   try {
     const data = JSON.parse(fs.readFileSync(path.resolve("updates/version.json"), "utf-8"));

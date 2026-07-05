@@ -3,6 +3,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGri
 import { useParams, useNavigate } from "react-router-dom";
 import { ArrowLeft, Clock, Edit3, Save, X, Tag, Plus, Trash2, RefreshCw, Image, CheckSquare, Square, Upload } from "lucide-react";
 import { games, tags as tagsApi } from "../api";
+import { resolveCoverUrl } from "../config";
 
 const STATUSES = ["not-playing", "playing", "completed", "dropped"];
 
@@ -154,7 +155,7 @@ function GameDetail() {
       </div>
 
         <div className="game-detail-card">
-        {game.coverUrl && <img className="game-detail-cover" src={game.coverUrl} alt="" onError={(e) => { e.target.style.display = "none"; }} />}
+        {game.coverUrl && <img className="game-detail-cover" src={resolveCoverUrl(game.coverUrl)} alt="" onError={(e) => { e.target.style.display = "none"; }} />}
         <div className="game-detail-header">
           <h1>{game.name}</h1>
           <span className={`game-status status-${game.status}`}>{game.status}</span>
