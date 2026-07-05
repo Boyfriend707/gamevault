@@ -55,10 +55,11 @@ router.post("/check", async (req, res) => {
     }
 
     // Update login streak
+    let streak = 0;
     const user = await prisma.user.findUnique({ where: { id: req.userId }, select: { lastLoginDate: true, loginStreak: true } });
     if (user) {
+      streak = user.loginStreak || 0;
       const lastLogin = user.lastLoginDate ? new Date(user.lastLoginDate) : null;
-      let streak = user.loginStreak || 0;
       const lastLoginDay = lastLogin ? new Date(lastLogin.getFullYear(), lastLogin.getMonth(), lastLogin.getDate()) : null;
       const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
       const yesterdayDay = getYesterday();
