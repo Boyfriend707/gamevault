@@ -190,6 +190,7 @@ model Game {
   localPath   String?
   steamAppId  Int?
   playtime    Int      @default(0)
+  source      String   @default("manual")
   status      String   @default("not-playing")
   pinned      Boolean  @default(false)
   pinOrder    Int      @default(0)

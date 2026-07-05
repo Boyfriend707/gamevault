@@ -1,5 +1,5 @@
 {
-    "installer":  "GameVault Setup 1.3.0.exe",
-    "version":  "1.3.0",
-    "notes":  "Message Reporting - flag messages, admin review queue, dismiss/delete"
+    "installer":  "GameVault Setup 1.3.1.exe",
+    "version":  "1.3.1",
+    "notes":  "CSV Import/Export - import and export game collection as CSV"
 }

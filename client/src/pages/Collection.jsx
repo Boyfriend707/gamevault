@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Plus, Search, Edit3, Trash2, Gamepad2, Play, Square, FolderOpen, Clock, Tag, FileText, Pin, X, Shuffle, LayoutGrid, List } from "lucide-react";
 import { games, tags as tagsApi } from "../api";
+import config from "../config";
 
 const PLATFORMS = ["PC", "PlayStation", "Xbox", "Nintendo", "Mobile", "Other"];
 const STATUSES = ["not-playing", "playing", "completed", "dropped"];
@@ -27,7 +28,32 @@ function Collection() {
   const [notesText, setNotesText] = useState("");
   const [viewMode, setViewMode] = useState(() => localStorage.getItem("collection-view") || "grid");
   const [sortBy, setSortBy] = useState(() => localStorage.getItem("collection-sort") || "name");
+  const [importResult, setImportResult] = useState(null);
   const navigate = useNavigate();
+  const importRef = useRef(null);
+
+  const handleExport = async () => {
+    try {
+      const res = await fetch(`${config.apiUrl}/games/export-csv`, { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } });
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gamevault-collection.csv";
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (err) { console.error(err); }
+  };
+
+  const handleImport = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const res = await games.importCsv(file);
+      setImportResult(res);
+    } catch (err) { console.error(err); }
+    if (importRef.current) importRef.current.value = "";
+  };
 
   useEffect(() => {
     fetchGames();
@@ -237,12 +263,28 @@ function Collection() {
           <Plus size={18} />
           Add Game
         </button>
+        <button className="btn btn-secondary" onClick={handleExport}>
+          <FileDown size={16} />
+          Export CSV
+        </button>
+        <button className="btn btn-secondary" onClick={() => importRef.current?.click()}>
+          <FileUp size={16} />
+          Import CSV
+        </button>
+        <input type="file" ref={importRef} style={{ display: "none" }} accept=".csv" onChange={handleImport} />
         {window.electronAPI?.scanForGames && (
           <button className="btn btn-secondary" onClick={() => handleScan()} disabled={scanning}>
             {scanning ? "Scanning..." : "Scan for Games"}
           </button>
         )}
       </div>
+
+      {importResult && (
+        <div className="import-result">
+          <span>Imported: {importResult.imported} | Skipped: {importResult.skipped} | Errors: {importResult.errors.length}</span>
+          <button className="btn-icon" onClick={() => { setImportResult(null); fetchGames(); }}><X size={14} /></button>
+        </div>
+      )}
 
       <div className="search-filter-row">
         <div className="search-input-wrapper">

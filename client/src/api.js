@@ -167,6 +167,15 @@ export const games = {
     toggle: (milestoneId) => request(`/games/milestones/${milestoneId}`, { method: "PUT" }),
     delete: (milestoneId) => request(`/games/milestones/${milestoneId}`, { method: "DELETE" }),
   },
+  exportCsv: () => {
+    const token = localStorage.getItem("token");
+    return request("/games/export-csv").then((r) => r);
+  },
+  importCsv: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return request("/games/import-csv", { method: "POST", body: formData, headers: {} });
+  },
 };
 
 export const steam = {

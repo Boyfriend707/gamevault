@@ -560,4 +560,69 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// GET /games/export-csv -- Export collection as CSV
+router.get("/export-csv", async (req, res) => {
+  try {
+    const games = await prisma.game.findMany({
+      where: { userId: req.userId },
+      orderBy: { name: "asc" },
+      include: { tags: { include: { tag: true } } },
+    });
+    const { stringify } = await import("csv-stringify/sync");
+    const records = games.map((g) => ({
+      title: g.name,
+      platform: g.platform || "",
+      status: g.status,
+      playtime_hours: Math.round((g.playtime / 60) * 10) / 10,
+      source: g.source || "manual",
+      tags: g.tags.map((t) => t.tag.name).join("; "),
+    }));
+    const csv = stringify(records, { header: true, columns: ["title", "platform", "status", "playtime_hours", "source", "tags"] });
+    res.setHeader("Content-Type", "text/csv");
+    res.setHeader("Content-Disposition", "attachment; filename=gamevault-collection.csv");
+    res.send(csv);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to export CSV" });
+  }
+});
+
+// POST /games/import-csv -- Import collection from CSV
+router.post("/import-csv", upload.single("file"), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ error: "No CSV file uploaded" });
+    const { parse } = await import("csv-parse/sync");
+    const csv = req.file.buffer.toString("utf-8");
+    const records = parse(csv, { columns: true, skip_empty_lines: true, trim: true });
+    const results = { imported: 0, skipped: 0, errors: [] };
+    for (let i = 0; i < records.length; i++) {
+      const row = records[i];
+      const title = row.title?.trim();
+      if (!title) { results.errors.push({ row: i + 1, error: "Missing title" }); continue; }
+      const existing = await prisma.game.findFirst({ where: { userId: req.userId, name: { equals: title, mode: "insensitive" } } });
+      if (existing) { results.skipped++; continue; }
+      const playtime = row.playtime_hours ? Math.round(parseFloat(row.playtime_hours) * 60) : 0;
+      const status = ["playing", "completed", "dropped", "backlog"].includes(row.status?.trim()) ? row.status.trim() : "not-playing";
+      const source = ["steam", "manual", "epic", "gog", "itchio", "other"].includes(row.source?.trim()) ? row.source.trim() : "manual";
+      try {
+        const game = await prisma.game.create({
+          data: { name: title, userId: req.userId, platform: row.platform?.trim() || null, status, playtime, source },
+        });
+        if (row.tags?.trim()) {
+          const tagNames = row.tags.split(";").map((t) => t.trim()).filter(Boolean);
+          for (const tagName of tagNames) {
+            const tag = await prisma.tag.upsert({ where: { userId_name: { userId: req.userId, name: tagName } }, update: {}, create: { userId: req.userId, name: tagName } });
+            await prisma.gameTag.create({ data: { gameId: game.id, tagId: tag.id } }).catch(() => {});
+          }
+        }
+        results.imported++;
+      } catch (err) {
+        results.errors.push({ row: i + 1, error: err.message });
+      }
+    }
+    res.json(results);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to import CSV" });
+  }
+});
+
 export default router;
