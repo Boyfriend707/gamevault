@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageSquare, Send, ArrowLeft, Image, Smile, Edit2, Trash2, Reply, Search, X, BarChart3, Plus, Minus, Vote, Flag } from "lucide-react";
+import { MessageSquare, Send, ArrowLeft, Image, Smile, Edit2, Trash2, Reply, Search, X, BarChart3, Plus, Minus, Vote, Flag, Bot } from "lucide-react";
 import { chats as chatsApi } from "../api";
+import config from "../config";
 import AvatarWithDecoration from "../components/AvatarWithDecoration";
 import VIPBadge from "../components/VIPBadge";
 
@@ -33,6 +34,7 @@ function Chat({ user }) {
   const [pollQuestion, setPollQuestion] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
   const [pollAllowMultiple, setPollAllowMultiple] = useState(false);
+  const [gameBot, setGameBot] = useState(null);
   const messagesEndRef = useRef(null);
   const pollRef = useRef(null);
   const typingRef = useRef(null);
@@ -40,6 +42,7 @@ function Chat({ user }) {
 
   useEffect(() => {
     loadConversations();
+    fetch(`${config.API_BASE}/bot`).then((r) => r.json()).then(setGameBot).catch(() => {});
     return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, []);
 
@@ -275,6 +278,21 @@ function Chat({ user }) {
       <div className="chat-layout">
         <div className="chat-sidebar">
           <div className="chat-convo-list">
+            {gameBot && (
+              <div className={`chat-convo-item ${selectedConvo?.otherUser?.username === "GameBot" ? "chat-convo-active" : ""}`}
+                onClick={async () => {
+                  if (gameBot) startChat(gameBot.id);
+                }}>
+                <div className="chat-convo-avatar" style={{ width: 36, height: 36, borderRadius: "50%", background: "linear-gradient(135deg, #22c55e, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                  <Bot size={20} color="white" />
+                </div>
+                <div className="chat-convo-info">
+                  <span className="chat-convo-name">{gameBot.displayName || "GameBot"} <span style={{ fontSize: "0.7rem", color: "var(--text-muted)" }}>AI</span></span>
+                  <span className="chat-convo-preview">Ask me anything about GameVault!</span>
+                </div>
+              </div>
+            )}
+            <div className="chat-convo-divider" style={{ height: 1, background: "var(--border)", margin: "0.25rem 0" }} />
             {conversations.length === 0 ? (
               <p className="empty-text">No conversations yet. Go to a friend's profile to start chatting!</p>
             ) : (
@@ -305,7 +323,11 @@ function Chat({ user }) {
                 <button className="btn-icon chat-mobile-back" onClick={() => setSelectedConvo(null)}>
                   <ArrowLeft size={18} />
                 </button>
-                <AvatarWithDecoration user={selectedConvo.otherUser || {}} size={32} />
+                {selectedConvo.otherUser?.username === "GameBot" ? (
+                  <div style={{ width: 32, height: 32, borderRadius: "50%", background: "linear-gradient(135deg, #22c55e, #06b6d4)", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <Bot size={18} color="white" />
+                  </div>
+                ) : <AvatarWithDecoration user={selectedConvo.otherUser || {}} size={32} />}
                 <span className="chat-header-name">{selectedConvo.otherUser?.displayName || selectedConvo.otherUser?.username}{(selectedConvo.otherUser?.role === "vip" || selectedConvo.otherUser?.role === "admin") && <VIPBadge size={14} />}</span>
                 <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem" }}>
                   <button className="btn-icon" onClick={() => setShowSearch(!showSearch)} title="Search messages">
@@ -348,7 +370,11 @@ function Chat({ user }) {
 
                     return (
                       <div key={msg.id} id={`msg-${msg.id}`} className={`chat-msg ${isMe ? "chat-msg-me" : "chat-msg-other"} ${deleted ? "chat-msg-deleted" : ""}`}>
-                        {!isMe && !deleted && <AvatarWithDecoration user={msg.user} size={28} />}
+                        {!isMe && !deleted && (msg.user?.username === "GameBot" ? (
+                          <div style={{ width: 28, height: 28, borderRadius: "50%", background: "linear-gradient(135deg, #22c55e, #06b6d4)", flexShrink: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                            <Bot size={16} color="white" />
+                          </div>
+                        ) : <AvatarWithDecoration user={msg.user} size={28} />)}
                         <div className="chat-msg-content">
                           {msg.replyTo && !deleted && (
                             <div className="chat-msg-reply" onClick={() => jumpToMessage(msg.replyTo.id)}>
@@ -435,6 +461,9 @@ function Chat({ user }) {
                   })
                 )}
                 {typingText && <div className="chat-typing"><span>{typingText}</span></div>}
+                {selectedConvo?.otherUser?.username === "GameBot" && messages.length > 0 && messages[messages.length - 1]?.userId !== gameBot?.id && messages[messages.length - 1]?.userId === user.id && (
+                  <div className="chat-typing"><span>GameBot is thinking...</span></div>
+                )}
                 <div ref={messagesEndRef} />
               </div>
 

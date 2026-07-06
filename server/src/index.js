@@ -36,6 +36,7 @@ import dashboardRoutes from "./routes/dashboard.js";
 import vibesRoutes from "./routes/vibes.js";
 import cosmeticsRoutes from "./routes/cosmetics.js";
 import { authenticateToken } from "./middleware/auth.js";
+import { generateResponse, BOT_USERNAME } from "./ai.js";
 
 const app = express();
 const prisma = new PrismaClient();
@@ -240,6 +241,13 @@ app.get("/api/steam-cover/:appId", async (req, res) => {
   res.end(pixel);
 });
 
+app.get("/api/bot", async (req, res) => {
+  try {
+    const bot = await prisma.user.findUnique({ where: { username: BOT_USERNAME }, select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true, role: true, bio: true } });
+    res.json(bot);
+  } catch { res.json(null); }
+});
+
 app.get("/api/update", (req, res) => {
   try {
     const data = JSON.parse(fs.readFileSync(path.resolve("updates/version.json"), "utf-8"));
@@ -262,7 +270,22 @@ if (process.env.NODE_ENV === "production" && fs.existsSync(publicDir)) {
 
 const PORT = process.env.PORT || 3001;
 
+async function seedGameBot() {
+  try {
+    const existing = await prisma.user.findUnique({ where: { username: BOT_USERNAME } });
+    if (!existing) {
+      await prisma.user.create({
+        data: { username: BOT_USERNAME, displayName: "GameBot", password: "", role: "bot", avatarUrl: "", bio: "GameVault's AI assistant 🤖" },
+      });
+      console.log("GameBot user created");
+    }
+  } catch (e) { console.error("Failed to seed GameBot:", e.message); }
+}
+
+export { app, prisma, generateResponse, BOT_USERNAME };
+
 async function main() {
+  await seedGameBot();
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`GameVault server running on port ${PORT}`);
   });

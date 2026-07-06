@@ -3,6 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import multer from "multer";
 import { authenticateToken } from "../middleware/auth.js";
 import { uploadToCloudinary } from "../index.js";
+import { generateResponse, BOT_USERNAME } from "../ai.js";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -145,10 +146,31 @@ router.post("/:id/messages", async (req, res) => {
     });
     await prisma.conversation.update({ where: { id: convoId }, data: { updatedAt: new Date() } });
     res.json(msg);
+
+    if (content?.trim()) {
+      triggerBotResponse(convoId, req.userId, content).catch(() => {});
+    }
   } catch (error) {
     res.status(500).json({ error: "Failed to send message" });
   }
 });
+
+async function triggerBotResponse(convoId, userId, userMessage) {
+  try {
+    const participants = await prisma.conversationParticipant.findMany({
+      where: { conversationId: convoId },
+      include: { user: { select: { id: true, username: true } } },
+    });
+    const bot = participants.find((p) => p.user.username === BOT_USERNAME);
+    if (!bot) return;
+    const reply = await generateResponse(userMessage);
+    if (!reply) return;
+    await prisma.message.create({
+      data: { content: reply, conversationId: convoId, userId: bot.userId },
+    });
+    await prisma.conversation.update({ where: { id: convoId }, data: { updatedAt: new Date() } });
+  } catch (e) { console.error("Bot response error:", e.message); }
+}
 
 // POST /chats/:id/images -- Upload an image message
 router.post("/:id/images", upload.single("image"), async (req, res) => {
