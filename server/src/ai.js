@@ -22,9 +22,13 @@ GameVault features:
 Keep responses concise, helpful, and friendly. Use emojis occasionally. If asked about something outside your knowledge, be honest that you don't know. Never claim to be a human.`;
 
 function getFallbackResponse(content) {
-  const lower = content.toLowerCase();
-  if (lower.includes("hello") || lower.includes("hi ") || lower === "hi" || lower.includes("hey") || lower.includes("sup"))
+  const lower = content.toLowerCase().trim();
+  if (lower.includes("hello") || lower.includes("hi ") || lower === "hi" || lower.includes("hey") || lower.includes("sup") || lower === "hello")
     return "Hey there! 👋 Welcome to GameVault! What can I help you with today?";
+  if (lower === "good" || lower === "i'm good" || lower === "im good" || lower === "doing good" || lower === "not bad" || lower === "fine" || lower === "pretty good" || lower === "good thanks" || lower === "good ty" || lower === "good and you" || lower === "doing great" || lower === "great")
+    return "Glad to hear it! 😊 What can I help you with in GameVault today?";
+  if (lower === "bad" || lower === "not good" || lower === "could be better" || lower === "meh" || lower === "tired")
+    return "Ah sorry to hear that 😕 Hope some gaming cheers you up! What can I help you with?";
   if (lower.includes("help") || lower.includes("what can you"))
     return "I can help you with GameVault features! Ask me about:\n- Adding and tracking games 🎮\n- Steam integration 🔗\n- Daily challenges & streaks ⚡\n- Badges & loot boxes 🏆\n- Chat & friends 💬\n- Profile customization 🎨\n- Importing/exporting your collection 📁\n\nWhat would you like to know?";
   if (lower.includes("how") && (lower.includes("game") || lower.includes("add") || lower.includes("track")))
@@ -41,9 +45,9 @@ function getFallbackResponse(content) {
     return "Go to a user's profile and click the message button to start chatting. You can send text, images, polls, and react with emojis. Your privacy settings control who can see your profile sections! 💬";
   if (lower.includes("import") || lower.includes("export") || lower.includes("csv"))
     return "On your Collection page, use the **Import** button to upload a CSV file with your games, or **Export** to download your collection as CSV. The format is: title, platform, status, playtime_hours, source, tags 📁";
-  if (lower.includes("thank") || lower.includes("thanks") || lower.includes("ty"))
+  if (lower.includes("thank") || lower.includes("thanks") || lower.includes("ty") || lower.includes("thx"))
     return "You're welcome! 😊 Happy gaming with GameVault! Anything else I can help with?";
-  if (lower.includes("bye") || lower.includes("goodbye") || lower.includes("see you"))
+  if (lower.includes("bye") || lower.includes("goodbye") || lower.includes("see you") || lower === "cya")
     return "See you later! Happy gaming! 🎮👋";
 
   return `I'm not sure about that. Try asking about GameVault features like adding games 🎮, Steam integration 🔗, daily challenges ⚡, badges 🏆, loot boxes 🎁, or chatting with friends 💬!`;
