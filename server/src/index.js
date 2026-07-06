@@ -199,25 +199,45 @@ app.get("/api/health", (req, res) => {
   res.json({ status: "ok" });
 });
 
+const coverCache = new Map();
+const CACHE_TTL = 1000 * 60 * 60; // 1 hour
+
 app.get("/api/steam-cover/:appId", async (req, res) => {
   const { appId } = req.params;
+  const cached = coverCache.get(appId);
+  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    res.setHeader("Content-Type", cached.type);
+    res.setHeader("Content-Length", cached.data.length);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+    return res.end(cached.data);
+  }
+
   const urls = [
     `https://shared.akamai.steamstatic.com/store_item_assets/steam/apps/${appId}/library_600x900.jpg`,
     `https://steamcdn-a.akamaihd.net/steam/apps/${appId}/library_600x900.jpg`,
   ];
   for (const url of urls) {
     try {
-      const resp = await fetch(url);
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+      const resp = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeout);
       if (resp.ok) {
         const buf = Buffer.from(await resp.arrayBuffer());
+        coverCache.set(appId, { data: buf, type: resp.headers.get("content-type") || "image/jpeg", ts: Date.now() });
         res.setHeader("Content-Type", resp.headers.get("content-type") || "image/jpeg");
         res.setHeader("Content-Length", buf.length);
-        res.end(buf);
-        return;
+        res.setHeader("Cache-Control", "public, max-age=3600");
+        return res.end(buf);
       }
     } catch {}
   }
-  res.status(204).end();
+  // transparent 1x1 GIF
+  const pixel = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
+  res.setHeader("Content-Type", "image/gif");
+  res.setHeader("Content-Length", pixel.length);
+  res.setHeader("Cache-Control", "public, max-age=86400");
+  res.end(pixel);
 });
 
 app.get("/api/update", (req, res) => {
