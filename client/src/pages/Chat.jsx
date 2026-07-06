@@ -39,6 +39,7 @@ function Chat({ user }) {
   const pollRef = useRef(null);
   const typingRef = useRef(null);
   const fileInputRef = useRef(null);
+  const lastMsgIdRef = useRef(null);
 
   useEffect(() => {
     loadConversations();
@@ -75,6 +76,7 @@ function Chat({ user }) {
     setSelectedConvo(convo);
     const msgs = await chatsApi.getMessages(convo.id);
     setMessages(msgs);
+    lastMsgIdRef.current = msgs.length > 0 ? msgs[msgs.length - 1].id : null;
     setReplyTo(null);
     setEditingId(null);
     setShowSearch(false);
@@ -82,14 +84,15 @@ function Chat({ user }) {
     setSearchResults([]);
     if (pollRef.current) clearInterval(pollRef.current);
     pollRef.current = setInterval(async () => {
-      const last = messages[messages.length - 1];
+      const afterId = lastMsgIdRef.current;
       try {
         const [newMsgs, convos] = await Promise.all([
-          chatsApi.getMessages(convo.id, last?.id),
+          chatsApi.getMessages(convo.id, afterId),
           chatsApi.list(),
         ]);
         if (newMsgs.length > 0) {
-          setMessages((prev) => [...prev, ...newMsgs]);
+          setMessages((prev) => { const existing = new Set(prev.map((m) => m.id)); const unique = newMsgs.filter((m) => !existing.has(m.id)); return unique.length ? [...prev, ...unique] : prev; });
+          lastMsgIdRef.current = newMsgs[newMsgs.length - 1].id;
         }
         setConversations(convos);
         const updated = convos.find((c) => c.id === convo.id);
@@ -104,6 +107,7 @@ function Chat({ user }) {
     try {
       const msg = await chatsApi.sendMessage(selectedConvo.id, input, replyTo?.id);
       setMessages((prev) => [...prev, msg]);
+      lastMsgIdRef.current = msg.id;
       setInput("");
       setReplyTo(null);
       setConversations((prev) => prev.map((c) =>
@@ -118,6 +122,7 @@ function Chat({ user }) {
     try {
       const msg = await chatsApi.uploadImage(selectedConvo.id, file);
       setMessages((prev) => [...prev, msg]);
+      lastMsgIdRef.current = msg.id;
       setConversations((prev) => prev.map((c) =>
         c.id === selectedConvo.id ? { ...c, lastMessage: msg } : c
       ));
@@ -172,6 +177,7 @@ function Chat({ user }) {
     try {
       const msg = await chatsApi.sendMessage(selectedConvo.id, "", null, { question: pollQuestion, options, allowMultiple: pollAllowMultiple });
       setMessages((prev) => [...prev, msg]);
+      lastMsgIdRef.current = msg.id;
       setPollQuestion("");
       setPollOptions(["", ""]);
       setPollAllowMultiple(false);
