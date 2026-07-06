@@ -24,11 +24,11 @@ Keep responses concise, helpful, and friendly. Use emojis occasionally. If asked
 function getFallbackResponse(content) {
   const lower = content.toLowerCase().trim();
   if (lower.includes("hello") || lower.includes("hi ") || lower === "hi" || lower.includes("hey") || lower.includes("sup") || lower === "hello")
-    return "Hey there! 👋 Welcome to GameVault! What can I help you with today?";
+    return "Hey! 👋 What can I help you with in GameVault?";
   if (lower.includes("how are you") || lower.includes("how's it going") || lower.includes("how you doing") || lower.includes("what's up") || lower.includes("wassup") || lower === "sup")
-    return "I'm doing great, thanks for asking! 😊 Ready to help you with GameVault — games, Steam, challenges, you name it! What's on your mind?";
+    return "Doing great! 😊 What can I help you with in GameVault?";
   if (lower === "good" || lower === "i'm good" || lower === "im good" || lower === "doing good" || lower === "not bad" || lower === "fine" || lower === "pretty good" || lower === "good thanks" || lower === "good ty" || lower === "good and you" || lower === "doing great" || lower === "great")
-    return "Glad to hear it! 😊 What can I help you with in GameVault today?";
+    return "Glad to hear it! 😊 What's up?";
   if (lower === "bad" || lower === "not good" || lower === "could be better" || lower === "meh" || lower === "tired")
     return "Ah sorry to hear that 😕 Hope some gaming cheers you up! What can I help you with?";
   if (lower.includes("help") || lower.includes("what can you"))

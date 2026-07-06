@@ -37,7 +37,8 @@
     },
     "files": [
       "dist/**/*",
-      "electron/**/*.cjs"
+      "electron/**/*.cjs",
+      "build/**/*"
     ],
     "extraMetadata": {
       "main": "electron/main.cjs"
