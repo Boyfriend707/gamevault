@@ -60,9 +60,10 @@ export async function generateResponse(userMessage) {
       const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
       const chat = model.startChat({ history: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }] }, { role: "model", parts: [{ text: "Got it! I'm GameBot, ready to help with GameVault." }] }] });
       const result = await chat.sendMessage(userMessage);
-      return result.response.text();
+      const text = result.response.text();
+      if (text) return text;
     } catch (e) {
-      console.error("Gemini API error:", e.message);
+      console.error("Gemini API error:", e.message, e.stack?.slice(0, 200));
     }
   }
   return getFallbackResponse(userMessage);
