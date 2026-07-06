@@ -12,6 +12,7 @@ let mainWindow;
 let tray = null;
 let updateInfo = null;
 let presenceInterval;
+let isQuitting = false;
 
 function createTray() {
   const iconPath = path.join(__dirname, "../build/icon.ico");
@@ -23,6 +24,30 @@ function createTray() {
   }
   tray = new Tray(icon);
   tray.setToolTip("GameVault");
+
+  const contextMenu = Menu.buildFromTemplate([
+    {
+      label: "Show GameVault",
+      click: () => {
+        if (mainWindow) {
+          mainWindow.show();
+          mainWindow.focus();
+        }
+      },
+    },
+    { type: "separator" },
+    {
+      label: "Exit",
+      click: () => {
+        isQuitting = true;
+        if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
+        if (tray) { try { tray.destroy(); } catch {} tray = null; }
+        app.exit(0);
+      },
+    },
+  ]);
+  tray.setContextMenu(contextMenu);
+
   tray.on("double-click", () => {
     if (mainWindow) {
       mainWindow.isVisible() ? mainWindow.hide() : mainWindow.show();
@@ -74,11 +99,17 @@ function createWindow() {
 
   mainWindow.once("ready-to-show", () => {
     mainWindow.show();
+    createTray();
   });
 
   mainWindow.on("close", (e) => {
-    if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
-    if (tray) { try { tray.destroy(); } catch {} tray = null; }
+    if (!isQuitting) {
+      e.preventDefault();
+      mainWindow.hide();
+    } else {
+      if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
+      if (tray) { try { tray.destroy(); } catch {} tray = null; }
+    }
   });
 
   mainWindow.webContents.on("before-input-event", (event, input) => {
@@ -87,8 +118,6 @@ function createWindow() {
     }
   });
 }
-
-app.whenReady().then(createWindow);
 
 function checkForUpdates(serverUrl) {
   return new Promise((resolve) => {
@@ -376,6 +405,10 @@ ipcMain.handle("store-keys", async () => {
 
 app.whenReady().then(createWindow);
 
+app.on("before-quit", () => {
+  isQuitting = true;
+});
+
 app.on("window-all-closed", () => {
   if (process.platform !== "darwin") {
     if (presenceInterval) { clearInterval(presenceInterval); presenceInterval = null; }
@@ -387,6 +420,8 @@ app.on("window-all-closed", () => {
 app.on("activate", () => {
   if (BrowserWindow.getAllWindows().length === 0) {
     createWindow();
-    createTray();
+  } else if (mainWindow) {
+    mainWindow.show();
+    mainWindow.focus();
   }
 });
