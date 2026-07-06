@@ -272,12 +272,17 @@ const PORT = process.env.PORT || 3001;
 
 async function seedGameBot() {
   try {
+    const old = await prisma.user.findUnique({ where: { username: "GameBot" } });
+    if (old) {
+      await prisma.user.update({ where: { id: old.id }, data: { username: BOT_USERNAME, displayName: "Gabe" } });
+      console.log("GameBot renamed to Gabe");
+    }
     const existing = await prisma.user.findUnique({ where: { username: BOT_USERNAME } });
     if (!existing) {
       await prisma.user.create({
-        data: { username: BOT_USERNAME, displayName: "GameBot", password: "", role: "bot", avatarUrl: "", bio: "GameVault's AI assistant 🤖" },
+        data: { username: BOT_USERNAME, displayName: "Gabe", password: "", role: "bot", avatarUrl: "", bio: "GameVault's AI assistant 🤖" },
       });
-      console.log("GameBot user created");
+      console.log("Gabe user created");
     }
   } catch (e) { console.error("Failed to seed GameBot:", e.message); }
 }

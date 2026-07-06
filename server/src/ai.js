@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const API_KEY = process.env.GEMINI_API_KEY;
-const BOT_USERNAME = "GameBot";
+const BOT_USERNAME = "Gabe";
 
-const SYSTEM_PROMPT = `You are GameBot, a friendly AI assistant for GameVault — a gaming dashboard app.
+const SYSTEM_PROMPT = `You are Gabe, a friendly AI assistant for GameVault — a gaming dashboard app.
 
 GameVault features:
 - Track your game collection (PC, PlayStation, Xbox, Nintendo, Mobile)
@@ -25,6 +25,8 @@ function getFallbackResponse(content) {
   const lower = content.toLowerCase().trim();
   if (lower.includes("hello") || lower.includes("hi ") || lower === "hi" || lower.includes("hey") || lower.includes("sup") || lower === "hello")
     return "Hey there! 👋 Welcome to GameVault! What can I help you with today?";
+  if (lower.includes("how are you") || lower.includes("how's it going") || lower.includes("how you doing") || lower.includes("what's up") || lower.includes("wassup") || lower === "sup")
+    return "I'm doing great, thanks for asking! 😊 Ready to help you with GameVault — games, Steam, challenges, you name it! What's on your mind?";
   if (lower === "good" || lower === "i'm good" || lower === "im good" || lower === "doing good" || lower === "not bad" || lower === "fine" || lower === "pretty good" || lower === "good thanks" || lower === "good ty" || lower === "good and you" || lower === "doing great" || lower === "great")
     return "Glad to hear it! 😊 What can I help you with in GameVault today?";
   if (lower === "bad" || lower === "not good" || lower === "could be better" || lower === "meh" || lower === "tired")
@@ -57,8 +59,8 @@ export async function generateResponse(userMessage) {
   if (API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
-      const chat = model.startChat({ history: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }] }, { role: "model", parts: [{ text: "Got it! I'm GameBot, ready to help with GameVault." }] }] });
+      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const chat = model.startChat({ history: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }] }, { role: "model", parts: [{ text: "Got it! I'm Gabe, ready to help with GameVault." }] }] });
       const result = await chat.sendMessage(userMessage);
       const text = result.response.text();
       if (text) return text;
