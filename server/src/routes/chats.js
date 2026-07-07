@@ -163,7 +163,22 @@ async function triggerBotResponse(convoId, userId, userMessage) {
     });
     const bot = participants.find((p) => p.user.username === BOT_USERNAME);
     if (!bot) return;
-    const reply = await generateResponse(userMessage);
+
+    const recentMsgs = await prisma.message.findMany({
+      where: { conversationId: convoId },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: { user: { select: { id: true, username: true } } },
+    });
+    const history = recentMsgs
+      .reverse()
+      .filter((m) => m.userId !== bot.userId || m.userId === null)
+      .map((m) => ({
+        role: m.userId === bot.userId ? "assistant" : "user",
+        content: m.content,
+      }));
+
+    const reply = await generateResponse(userMessage, history);
     if (!reply) return;
     await prisma.message.create({
       data: { content: reply, conversationId: convoId, userId: bot.userId },

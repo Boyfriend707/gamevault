@@ -1,6 +1,8 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import Groq from "groq-sdk";
 
-const API_KEY = process.env.GEMINI_API_KEY;
+const GEMINI_KEY = process.env.GEMINI_API_KEY;
+const GROQ_KEY = process.env.GROQ_API_KEY;
 const BOT_USERNAME = "Gabe";
 
 const SYSTEM_PROMPT = `You are Gabe, a friendly AI assistant for GameVault — a gaming dashboard app.
@@ -63,19 +65,49 @@ function getFallbackResponse(content) {
   return `I'm not sure about that. Try asking about GameVault features like adding games 🎮, Steam integration 🔗, daily challenges ⚡, badges 🏆, loot boxes 🎁, or chatting with friends 💬!`;
 }
 
-export async function generateResponse(userMessage) {
-  if (API_KEY) {
+export async function generateResponse(userMessage, history = []) {
+  if (GEMINI_KEY) {
     try {
-      const genAI = new GoogleGenerativeAI(API_KEY);
+      const genAI = new GoogleGenerativeAI(GEMINI_KEY);
       const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-      const chat = model.startChat({ history: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }] }, { role: "model", parts: [{ text: "Got it! I'm Gabe, ready to help with GameVault." }] }] });
+      const geminiHistory = history.map((h) => ({
+        role: h.role === "assistant" ? "model" : "user",
+        parts: [{ text: h.content }],
+      }));
+      const chat = model.startChat({
+        history: [
+          { role: "user", parts: [{ text: SYSTEM_PROMPT }] },
+          { role: "model", parts: [{ text: "Got it! I'm Gabe, ready to help with GameVault." }] },
+          ...geminiHistory,
+        ],
+      });
       const result = await chat.sendMessage(userMessage);
       const text = result.response.text();
       if (text) return text;
     } catch (e) {
-      console.error("Gemini API error:", e.message, e.stack?.slice(0, 200));
+      console.error("Gemini error:", e.message, e.stack?.slice(0, 200));
     }
   }
+
+  if (GROQ_KEY) {
+    try {
+      const groq = new Groq({ apiKey: GROQ_KEY });
+      const messages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...history.map((h) => ({ role: h.role === "assistant" ? "assistant" : "user", content: h.content })),
+        { role: "user", content: userMessage },
+      ];
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages,
+      });
+      const text = completion.choices[0]?.message?.content;
+      if (text) return text;
+    } catch (e) {
+      console.error("Groq error:", e.message);
+    }
+  }
+
   return getFallbackResponse(userMessage);
 }
 
