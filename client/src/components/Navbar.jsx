@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   LayoutDashboard,
@@ -9,6 +10,8 @@ import {
   LogOut,
   Trophy,
   StickyNote,
+  Menu,
+  X,
 } from "lucide-react";
 import { Zap } from "lucide-react";
 import AvatarWithDecoration from "./AvatarWithDecoration";
@@ -17,6 +20,7 @@ import NotificationsCenter from "./NotificationsCenter";
 
 function Navbar({ user, onLogout }) {
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const links = [
     { to: "/", label: "Dashboard", icon: LayoutDashboard },
@@ -36,7 +40,11 @@ function Navbar({ user, onLogout }) {
         <span className="brand-text">GameVault</span>
       </div>
 
-      <div className="navbar-links">
+      <button className="navbar-mobile-toggle" onClick={() => setMobileMenuOpen(!mobileMenuOpen)}>
+        {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
+      </button>
+
+      <div className={`navbar-links${mobileMenuOpen ? " navbar-links-open" : ""}`}>
         {links.map((link) => (
           <NavLink
             key={link.to}
@@ -45,6 +53,7 @@ function Navbar({ user, onLogout }) {
             className={({ isActive }) =>
               `nav-link ${isActive ? "active" : ""}`
             }
+            onClick={() => setMobileMenuOpen(false)}
           >
             <link.icon size={18} />
             {link.label && <span>{link.label}</span>}

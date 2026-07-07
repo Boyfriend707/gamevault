@@ -350,6 +350,24 @@ a {
   line-height: 1.3;
 }
 
+.navbar-mobile-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+  border-radius: var(--radius-sm);
+  margin-right: auto;
+}
+
+.navbar-mobile-toggle:hover {
+  background: var(--bg);
+}
+
 .main-content {
   max-width: 1200px;
   margin: 0 auto;
@@ -3605,3 +3623,56 @@ select.input { width: 100%; }
 .crate-result.rare { border-left: 3px solid #3b82f6; }
 .crate-result.epic { border-left: 3px solid #a855f7; }
 .crate-result.legendary { border-left: 3px solid #f59e0b; }
+
+@media (max-width: 900px) {
+  .stat-cards { grid-template-columns: repeat(2, 1fr); }
+  .dashboard-grid { grid-template-columns: 1fr; }
+  .game-detail-stats .stat-card { min-width: 100px; }
+  .chat-layout { height: calc(100vh - 140px); }
+}
+
+@media (max-width: 768px) {
+  .navbar { padding: 0 0.75rem; }
+  .navbar-links { display: none; }
+  .navbar-mobile-toggle { display: flex; }
+  .navbar-links-open { display: flex; flex-direction: column; position: absolute; top: 60px; left: 0; right: 0; background: var(--surface); border-bottom: 1px solid var(--border); padding: 0.5rem; z-index: 100; gap: 0.125rem; box-shadow: var(--shadow-md); }
+  .navbar-links-open .nav-link { border-radius: var(--radius-sm); padding: 0.625rem 0.75rem; }
+  .navbar-right .navbar-username { display: none; }
+  .navbar-level { display: none; }
+  .main-content { padding: 1rem; }
+  .page-title { font-size: 1.25rem; }
+  .page-header { flex-direction: column; gap: 0.5rem; }
+  .search-filter-row { flex-direction: column; }
+  .form-row { grid-template-columns: 1fr; }
+  .profile-header { flex-direction: column; align-items: flex-start; }
+  .settings-sections { max-width: 100%; }
+  .steam-card { max-width: 100%; }
+  .steam-actions { flex-direction: column; }
+  .playtime-modal { max-width: 100%; margin: 0 0.5rem; }
+  .notif-dropdown { width: 300px; right: -60px; }
+  .chat-layout { height: calc(100vh - 120px); }
+  .chat-sidebar { width: 100%; }
+  .chat-main { width: 100%; }
+  .chat-msg { max-width: 85%; }
+}
+
+@media (max-width: 480px) {
+  .stat-cards { grid-template-columns: 1fr; }
+  .game-grid { grid-template-columns: 1fr; }
+  .modal { width: 95%; padding: 1rem; }
+  .login-card { padding: 1.5rem; }
+  .page-header { margin-bottom: 1rem; }
+  .page-title { font-size: 1.1rem; }
+  .page-subtitle { font-size: 0.8rem; }
+  .game-card-content { padding: 0.75rem; }
+  .game-name { font-size: 0.9rem; }
+  .notif-dropdown { width: calc(100vw - 20px); right: -70px; }
+  .profile-banner { height: 100px; }
+  .profile-header { padding: 1rem; }
+  .profile-name-display { font-size: 1.25rem; }
+  .vibes-grid { grid-template-columns: 1fr; }
+  .theme-grid { grid-template-columns: repeat(auto-fill, minmax(80px, 1fr)); }
+  .admin-toggle-grid { font-size: 0.8rem; }
+  .chat-mobile-back { display: flex; }
+  .chat-msg-bubble { font-size: 0.85rem; }
+}
