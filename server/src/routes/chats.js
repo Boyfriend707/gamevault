@@ -248,9 +248,9 @@ router.post("/:id/images", upload.single("image"), async (req, res) => {
     });
     if (!participant) return res.status(403).json({ error: "Not a participant" });
     if (!req.file) return res.status(400).json({ error: "No image provided" });
-    const result = await uploadToCloudinary(req.file.buffer, { folder: "chat" });
+    const url = await uploadToCloudinary(req.file.buffer, undefined, { folder: "chat" });
     const msg = await prisma.message.create({
-      data: { content: "", imageUrl: result.secure_url, conversationId: convoId, userId: req.userId },
+      data: { content: "", imageUrl: url, conversationId: convoId, userId: req.userId },
       include: {
         user: { select: { id: true, username: true, displayName: true, avatarUrl: true, decorationUrl: true } },
         replyTo: { select: { id: true, content: true, imageUrl: true, userId: true, user: { select: { id: true, username: true, displayName: true } } } },
