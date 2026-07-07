@@ -15,7 +15,7 @@ GameVault features:
 - Goals system with auto-completion
 - Chat with friends, send polls, react with emojis
 - Badges: earn and display achievements
-- Loot boxes: earn cosmetic items (profile frames, chat bubbles, name colors, badge variants)
+- Loot boxes: earn cosmetic items (profile frames, chat bubbles, name colors, badge variants); buy crates with XP (500 each) or sell unwanted items for 80% XP refund
 - Profile customization: avatar, banner, bio, status message, decorations
 - Friend system with privacy controls
 - Import/export collection via CSV
@@ -42,7 +42,7 @@ function getFallbackResponse(content) {
   if (lower.includes("badge") || lower.includes("achievement"))
     return "Badges are special awards you can earn! Some are auto-awarded by the system (like for completing goals or hitting streaks). Admins can also create and award custom badges. Check your earned badges on your Profile page. Steam achievements can be synced too! 🏆";
   if (lower.includes("loot") || lower.includes("crate") || lower.includes("box") || lower.includes("cosmetic"))
-    return "Loot boxes are earned when you level up! Go to **Appearance** and click 'Open Crate' to get a random cosmetic item. Rarity varies: Common (50%), Uncommon (30%), Rare (12%), Epic (6%), Legendary (2%). Equip them from the 'My Items' tab! 🎁";
+    return "Loot boxes are earned when you level up! Go to **Appearance** and click 'Open Crate' to get a random cosmetic item. You can also **buy crates with XP** (500 XP each) from the Loot Boxes section, or **sell unwanted items** for 80% of their value back. Rarity varies: Common (50%), Uncommon (30%), Rare (12%), Epic (6%), Legendary (2%). Equip them from the 'My Items' tab! 🎁";
   if (lower.includes("daily") || lower.includes("challenge") || lower.includes("streak"))
     return "Daily challenges refresh each day. Complete them to keep your login streak going! The longer your streak, the more rewards you'll get. Check the **Challenges** tab to see today's tasks! ⚡";
   if (lower.includes("friend") || lower.includes("message") || lower.includes("chat"))

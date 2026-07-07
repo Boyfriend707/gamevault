@@ -293,6 +293,8 @@ export const cosmetics = {
   listAll: () => request("/cosmetics"),
   listMine: () => request("/cosmetics/mine"),
   openCrate: () => request("/cosmetics/open-crate", { method: "POST" }),
+  buyCrate: (quantity = 1) => request("/cosmetics/buy-crate", { method: "POST", body: JSON.stringify({ quantity }) }),
+  sellItem: (id) => request(`/cosmetics/sell/${id}`, { method: "POST" }),
   toggleEquip: (id) => request(`/cosmetics/${id}/equip`, { method: "PUT" }),
   adminCreate: (data, token) => request("/cosmetics", { method: "POST", body: JSON.stringify(data), headers: { Authorization: `Bearer ${token}` } }),
   adminSeed: (token) => request("/cosmetics/seed", { method: "POST", headers: { Authorization: `Bearer ${token}` } }),

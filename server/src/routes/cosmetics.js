@@ -77,6 +77,49 @@ router.post("/open-crate", authenticateToken, async (req, res) => {
   res.json({ cosmetic, wasNew: !existing });
 });
 
+// Buy crates with XP
+router.post("/buy-crate", authenticateToken, async (req, res) => {
+  try {
+    const { quantity = 1 } = req.body;
+    const qty = Math.min(Math.max(1, parseInt(quantity) || 1), 100);
+    const cost = 500 * qty;
+    const user = await prisma.user.findUnique({
+      where: { id: req.userId },
+      select: { xp: true },
+    });
+    if (!user || user.xp < cost) {
+      return res.status(400).json({ error: `Need ${cost} XP, you have ${user?.xp || 0}` });
+    }
+    await prisma.user.update({
+      where: { id: req.userId },
+      data: { xp: { decrement: cost }, unopenedCrates: { increment: qty } },
+    });
+    res.json({ cratesAdded: qty, xpSpent: cost });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to buy crates" });
+  }
+});
+
+// Sell a cosmetic item for XP (80% of base value)
+const SELL_PRICES = { common: 50, uncommon: 100, rare: 250, epic: 500, legendary: 1000 };
+router.post("/sell/:id", authenticateToken, async (req, res) => {
+  try {
+    const uc = await prisma.userCosmetic.findFirst({
+      where: { id: parseInt(req.params.id), userId: req.userId },
+      include: { cosmetic: true },
+    });
+    if (!uc) return res.status(404).json({ error: "Not found" });
+    if (uc.equipped) return res.status(400).json({ error: "Unequip before selling" });
+    const basePrice = SELL_PRICES[uc.cosmetic.rarity] || 25;
+    const refund = Math.floor(basePrice * 0.8);
+    await prisma.userCosmetic.delete({ where: { id: uc.id } });
+    await prisma.user.update({ where: { id: req.userId }, data: { xp: { increment: refund } } });
+    res.json({ sold: uc.cosmetic.name, rarity: uc.cosmetic.rarity, xpRefunded: refund });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to sell item" });
+  }
+});
+
 // Toggle equip
 router.put("/:id/equip", authenticateToken, async (req, res) => {
   const uc = await prisma.userCosmetic.findFirst({

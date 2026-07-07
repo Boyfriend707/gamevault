@@ -21,6 +21,8 @@ const ACCENT_COLORS = [
   "#e11d48", "#d946ef", "#0ea5e9", "#34d399", "#84cc16",
 ];
 
+const SELL_PRICES = { common: 40, uncommon: 80, rare: 200, epic: 400, legendary: 800 };
+
 const THEMES = [
   { id: "light", name: "Light" },
   { id: "dark", name: "Dark" },
@@ -54,6 +56,9 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
   const [myCosmetics, setMyCosmetics] = useState([]);
   const [crateResult, setCrateResult] = useState(null);
   const [crateOpening, setCrateOpening] = useState(false);
+  const [buyQty, setBuyQty] = useState(1);
+  const [buying, setBuying] = useState(false);
+  const [selling, setSelling] = useState(null);
 
   const isUnlocked = (themeId) => {
     if (themeId === "light" || themeId === "dark" || themeId === "midnight" || themeId === "forest") return true;
@@ -551,7 +556,7 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
                 <span className="setting-desc">Open crates to unlock cosmetic items. Earn them by leveling up!</span>
               </div>
             </div>
-            <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
               <button className="btn btn-primary" disabled={(user?.unopenedCrates ?? 0) < 1 || crateOpening} onClick={async () => {
                 setCrateOpening(true);
                 setCrateResult(null);
@@ -568,6 +573,23 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
               }}>
                 <Dice6 size={16} /> {crateOpening ? "Opening..." : "Open Crate"}
               </button>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                <input type="number" min={1} max={100} value={buyQty} onChange={(e) => setBuyQty(Math.max(1, parseInt(e.target.value) || 1))}
+                  style={{ width: 50, padding: "0.35rem", borderRadius: "var(--radius)", border: "1px solid var(--border)", background: "var(--bg)", color: "inherit", textAlign: "center" }} />
+                <button className="btn btn-secondary" disabled={buying} onClick={async () => {
+                  setBuying(true);
+                  try {
+                    const res = await cosmeticsApi.buyCrate(buyQty);
+                    showMessage(`Bought ${res.cratesAdded} crate(s) for ${res.xpSpent} XP`);
+                    const [mine, me] = await Promise.all([cosmeticsApi.listMine(), auth.me()]);
+                    setMyCosmetics(mine);
+                    onUserUpdate(me);
+                  } catch (err) { showMessage(err.message, "error"); }
+                  setBuying(false);
+                }}>
+                  <Dice6 size={14} /> Buy {buyQty} ({buyQty * 500} XP)
+                </button>
+              </div>
               <button className="btn btn-secondary" onClick={async () => {
                 const mine = await cosmeticsApi.listMine();
                 setMyCosmetics(mine);
@@ -597,17 +619,31 @@ function Appearance({ user, onUserUpdate, onBgUpdate }) {
                   {myCosmetics.map((uc) => (
                     <div key={uc.id} className={`cosmetic-item ${uc.equipped ? "cosmetic-equipped" : ""}`} style={{
                       padding: "0.75rem", borderRadius: "var(--radius)", border: uc.equipped ? "2px solid var(--accent)" : "1px solid var(--border)",
-                      background: "var(--bg-secondary)", cursor: "pointer",
-                    }} onClick={async () => {
-                      await cosmeticsApi.toggleEquip(uc.id);
-                      const mine = await cosmeticsApi.listMine();
-                      setMyCosmetics(mine);
+                      background: "var(--bg-secondary)",
                     }}>
-                      <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{uc.cosmetic.name}</div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
-                        {uc.cosmetic.rarity} &middot; {uc.cosmetic.type.replace("_", " ")}
+                      <div style={{ cursor: "pointer" }} onClick={async () => {
+                        await cosmeticsApi.toggleEquip(uc.id);
+                        const mine = await cosmeticsApi.listMine();
+                        setMyCosmetics(mine);
+                      }}>
+                        <div style={{ fontWeight: 600, fontSize: "0.9rem" }}>{uc.cosmetic.name}</div>
+                        <div style={{ fontSize: "0.75rem", color: "var(--text-muted)", marginTop: "0.25rem" }}>
+                          {uc.cosmetic.rarity} &middot; {uc.cosmetic.type.replace("_", " ")}
+                        </div>
+                        {uc.equipped && <div style={{ fontSize: "0.7rem", color: "var(--accent)", marginTop: "0.25rem" }}>Equipped</div>}
                       </div>
-                      {uc.equipped && <div style={{ fontSize: "0.7rem", color: "var(--accent)", marginTop: "0.25rem" }}>Equipped</div>}
+                      {!uc.equipped && (
+                        <button className="btn btn-sm" style={{ marginTop: "0.5rem", fontSize: "0.7rem", width: "100%" }}
+                          disabled={selling === uc.id} onClick={async (e) => { e.stopPropagation(); setSelling(uc.id); try {
+                            const res = await cosmeticsApi.sellItem(uc.id);
+                            showMessage(`Sold ${res.sold} for ${res.xpRefunded} XP`);
+                            const [mine, me] = await Promise.all([cosmeticsApi.listMine(), auth.me()]);
+                            setMyCosmetics(mine);
+                            onUserUpdate(me);
+                          } catch (err) { showMessage(err.message, "error"); } setSelling(null); }}>
+                          Sell for {SELL_PRICES[uc.cosmetic.rarity] || 20} XP
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>
