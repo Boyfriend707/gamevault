@@ -52,6 +52,14 @@ function getFallbackResponse(content) {
   if (lower.includes("bye") || lower.includes("goodbye") || lower.includes("see you") || lower === "cya")
     return "See you later! Happy gaming! 🎮👋";
 
+  const mathMatch = lower.match(/^(\d+)\s*([+\-*/])\s*(\d+)$/);
+  if (mathMatch) {
+    const a = parseFloat(mathMatch[1]), b = parseFloat(mathMatch[3]), op = mathMatch[2];
+    const ops = { "+": a + b, "-": a - b, "*": a * b, "/": b !== 0 ? a / b : null };
+    if (ops[op] !== null && ops[op] !== undefined && Number.isFinite(ops[op]))
+      return `That's ${ops[op]}! 😊 Anything else?`;
+  }
+
   return `I'm not sure about that. Try asking about GameVault features like adding games 🎮, Steam integration 🔗, daily challenges ⚡, badges 🏆, loot boxes 🎁, or chatting with friends 💬!`;
 }
 
@@ -59,7 +67,7 @@ export async function generateResponse(userMessage) {
   if (API_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const chat = model.startChat({ history: [{ role: "user", parts: [{ text: SYSTEM_PROMPT }] }, { role: "model", parts: [{ text: "Got it! I'm Gabe, ready to help with GameVault." }] }] });
       const result = await chat.sendMessage(userMessage);
       const text = result.response.text();
