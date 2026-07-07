@@ -2129,14 +2129,17 @@ select.input { width: 100%; }
 @media (max-width: 768px) {
   .chat-sidebar {
     width: 100%;
+  }
+
+  .chat-main {
+    width: 100%;
+  }
+
+  .chat-layout:has(.chat-header) .chat-sidebar {
     display: none;
   }
 
-  .chat-sidebar:has(.chat-convo-active) {
-    display: none;
-  }
-
-  .chat-main:has(.chat-header) .chat-sidebar {
+  .chat-layout:not(:has(.chat-header)) .chat-main {
     display: none;
   }
 
