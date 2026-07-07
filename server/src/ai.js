@@ -65,6 +65,22 @@ function getFallbackResponse(content) {
   return `I'm not sure about that. Try asking about GameVault features like adding games 🎮, Steam integration 🔗, daily challenges ⚡, badges 🏆, loot boxes 🎁, or chatting with friends 💬!`;
 }
 
+export async function searchWeb(query) {
+  try {
+    const url = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    const resp = await fetch(url);
+    const data = await resp.json();
+    if (data.AbstractText) return data.AbstractText;
+    if (data.Answer) return data.Answer;
+    if (data.RelatedTopics?.length > 0) {
+      return data.RelatedTopics.slice(0, 3).map((t) => t.Text || t.Result).filter(Boolean).join("\n");
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export async function generateResponse(userMessage, history = []) {
   if (GROQ_KEY) {
     try {

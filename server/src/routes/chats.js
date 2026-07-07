@@ -3,7 +3,7 @@ import { PrismaClient } from "@prisma/client";
 import multer from "multer";
 import { authenticateToken } from "../middleware/auth.js";
 import { uploadToCloudinary } from "../index.js";
-import { generateResponse, BOT_USERNAME } from "../ai.js";
+import { generateResponse, searchWeb, BOT_USERNAME } from "../ai.js";
 
 const router = Router();
 const prisma = new PrismaClient();
@@ -167,7 +167,7 @@ async function triggerBotResponse(convoId, userId, userMessage) {
     const recentMsgs = await prisma.message.findMany({
       where: { conversationId: convoId },
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 17,
       include: { user: { select: { id: true, username: true } } },
     });
     const history = recentMsgs
@@ -178,7 +178,59 @@ async function triggerBotResponse(convoId, userId, userMessage) {
         content: m.content,
       }));
 
-    const reply = await generateResponse(userMessage, history);
+    const lower = userMessage.toLowerCase();
+    let context = "";
+
+    if (lower.includes("game") || lower.includes("collection") || lower.includes("play") || lower.includes("playtime") || lower.includes("pc") || lower.includes("steam") || lower.includes("track")) {
+      const games = await prisma.game.findMany({ where: { userId } });
+      if (games.length > 0) {
+        const totalPlaytime = games.reduce((s, g) => s + (g.playtimeHours || 0), 0);
+        const byStatus = {};
+        games.forEach((g) => { byStatus[g.status || "unknown"] = (byStatus[g.status || "unknown"] || 0) + 1; });
+        context += `[User's collection: ${games.length} games, ${totalPlaytime}h total | `;
+        context += Object.entries(byStatus).map(([k, v]) => `${k}: ${v}`).join(", ");
+        context += "]\n";
+        const top = games.sort((a, b) => (b.playtimeHours || 0) - (a.playtimeHours || 0)).slice(0, 5);
+        context += `[Top played: ${top.map((g) => `${g.title} (${g.playtimeHours || 0}h)`).join(", ")}]\n`;
+      }
+    }
+
+    if (lower.includes("friend") || lower.includes("online") || lower.includes("offline")) {
+      const friends = await prisma.friend.findMany({
+        where: { userId, status: "accepted" },
+        include: { friend: { select: { id: true, username: true, displayName: true, status: true, lastSeen: true } } },
+      });
+      if (friends.length > 0) {
+        const online = friends.filter((f) => f.friend.status === "online" || f.friend.status === "online-away");
+        context += `[Friends: ${friends.length} total, ${online.length} online]\n`;
+        if (online.length > 0) context += `[Online: ${online.map((f) => f.friend.displayName || f.friend.username).join(", ")}]\n`;
+      }
+    }
+
+    if (lower.includes("profile") || lower.includes("level") || lower.includes("xp") || lower.includes("badge") || lower.includes("rank")) {
+      const userData = await prisma.user.findUnique({ where: { id: userId }, select: { username: true, displayName: true, xp: true, role: true, bio: true, statusMessage: true } });
+      if (userData) {
+        const level = Math.floor(Math.pow((userData.xp || 0) / 100, 0.6));
+        context += `[Profile: ${userData.displayName || userData.username} | Level ${level} | ${userData.xp || 0} XP | Role: ${userData.role}]\n`;
+      }
+    }
+
+    if (lower.includes("challenge") || lower.includes("streak") || lower.includes("daily")) {
+      const today = await prisma.dailyChallenge.findMany({ where: { userId, date: { gte: new Date(new Date() - 86400000 * 7) } }, orderBy: { date: "desc" } });
+      const streak = await prisma.loginStreak.findUnique({ where: { userId } });
+      if (today.length > 0) context += `[Challenges last 7d: ${today.filter((c) => c.completed).length}/${today.length} completed]\n`;
+      if (streak) context += `[Login streak: ${streak.count} days]\n`;
+    }
+
+    const searchMatch = lower.match(/(?:search|google|look up|find|what is|who is|tell me about)\s+(.+)/i);
+    if (searchMatch) {
+      const query = searchMatch[1].replace(/^(?:on google|online|for me)\s+/i, "");
+      const searchResult = await searchWeb(query);
+      if (searchResult) context += `[Web search for "${query}": ${searchResult.slice(0, 500)}]\n`;
+    }
+
+    const messageWithContext = context ? `${context}\n${userMessage}` : userMessage;
+    const reply = await generateResponse(messageWithContext, history);
     if (!reply) return;
     await prisma.message.create({
       data: { content: reply, conversationId: convoId, userId: bot.userId },
