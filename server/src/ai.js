@@ -66,6 +66,25 @@ function getFallbackResponse(content) {
 }
 
 export async function generateResponse(userMessage, history = []) {
+  if (GROQ_KEY) {
+    try {
+      const groq = new Groq({ apiKey: GROQ_KEY });
+      const messages = [
+        { role: "system", content: SYSTEM_PROMPT },
+        ...history.map((h) => ({ role: h.role === "assistant" ? "assistant" : "user", content: h.content })),
+        { role: "user", content: userMessage },
+      ];
+      const completion = await groq.chat.completions.create({
+        model: "llama-3.3-70b-versatile",
+        messages,
+      });
+      const text = completion.choices[0]?.message?.content;
+      if (text) return text;
+    } catch (e) {
+      console.error("Groq error:", e.message);
+    }
+  }
+
   if (GEMINI_KEY) {
     try {
       const genAI = new GoogleGenerativeAI(GEMINI_KEY);
@@ -86,25 +105,6 @@ export async function generateResponse(userMessage, history = []) {
       if (text) return text;
     } catch (e) {
       console.error("Gemini error:", e.message, e.stack?.slice(0, 200));
-    }
-  }
-
-  if (GROQ_KEY) {
-    try {
-      const groq = new Groq({ apiKey: GROQ_KEY });
-      const messages = [
-        { role: "system", content: SYSTEM_PROMPT },
-        ...history.map((h) => ({ role: h.role === "assistant" ? "assistant" : "user", content: h.content })),
-        { role: "user", content: userMessage },
-      ];
-      const completion = await groq.chat.completions.create({
-        model: "llama-3.3-70b-versatile",
-        messages,
-      });
-      const text = completion.choices[0]?.message?.content;
-      if (text) return text;
-    } catch (e) {
-      console.error("Groq error:", e.message);
     }
   }
 
