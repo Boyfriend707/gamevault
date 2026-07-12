@@ -21,32 +21,37 @@ async function request(endpoint, options = {}) {
   const url = `${config.API_BASE}${endpoint}`;
   const entry = { method: options.method || "GET", url, timestamp: new Date(), status: null, data: null, error: null };
 
+  let res;
   try {
-    const res = await fetch(url, { ...options, headers });
-    const data = await res.json();
-
-    entry.status = res.status;
-    if (!res.ok) {
-      entry.error = data.error || "Request failed";
-      log.push(entry);
-      if (log.length > 50) log.shift();
-      const err = new Error(entry.error);
-      err.status = res.status;
-      throw err;
-    }
-
-    entry.data = data;
-    log.push(entry);
-    if (log.length > 50) log.shift();
-    return data;
-  } catch (err) {
-    if (!entry.error) {
-      entry.error = err.message;
-      log.push(entry);
-      if (log.length > 50) log.shift();
-    }
+    res = await fetch(url, { ...options, headers });
+  } catch (fetchErr) {
+    const err = new Error(fetchErr.name === "AbortError" ? "Request timed out" : "Network error");
+    err.status = fetchErr.name === "AbortError" ? 408 : 0;
+    entry.error = err.message; entry.status = err.status;
+    log.push(entry); if (log.length > 50) log.shift();
     throw err;
   }
+  let data;
+  try {
+    data = await res.json();
+  } catch {
+    const err = new Error("Server returned an invalid response");
+    err.status = res.status;
+    entry.error = err.message; entry.status = res.status;
+    log.push(entry); if (log.length > 50) log.shift();
+    throw err;
+  }
+  entry.status = res.status;
+  if (!res.ok) {
+    entry.error = data.error || "Request failed";
+    log.push(entry); if (log.length > 50) log.shift();
+    const err = new Error(entry.error);
+    err.status = res.status;
+    throw err;
+  }
+  entry.data = data;
+  log.push(entry); if (log.length > 50) log.shift();
+  return data;
 }
 
 export function clearLog() {
@@ -64,7 +69,7 @@ export const auth = {
       method: "POST",
       body: JSON.stringify({ username, password }),
     }),
-  me: () => request("/auth/me"),
+  me: (timeoutMs) => request("/auth/me", timeoutMs ? { signal: AbortSignal.timeout(timeoutMs) } : {}),
   uploadAvatar: (file) => {
     const formData = new FormData();
     formData.append("avatar", file);

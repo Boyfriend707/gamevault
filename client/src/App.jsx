@@ -21,6 +21,7 @@ import useKeyboardShortcuts, { useShortcut } from "./hooks/useKeyboardShortcuts"
 function App() {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(null);
   const [updateInfo, setUpdateInfo] = useState(null);
   const [bgValue, setBgValue] = useState(() => localStorage.getItem("bg") || "");
   const [bgVideo, setBgVideo] = useState(() => localStorage.getItem("bgVideo") || "");
@@ -32,6 +33,37 @@ function App() {
   useShortcut("search", () => { const s = document.querySelector(".search-input"); if (s) s.focus(); });
   useShortcut("close", () => { const m = document.querySelector(".modal-overlay"); if (m) m.click(); });
 
+  const tryAuth = async () => {
+    const store = window.electronAPI?.storeGet;
+    let token = localStorage.getItem("token") || (store ? await store("token") : null);
+    if (token) localStorage.setItem("token", token);
+    if (!token) { setLoading(false); return; }
+    for (let i = 0; i < 5; i++) {
+      try {
+        const u = await auth.me(8000);
+        setUser(u);
+        dailyChallenges.check().catch(() => {});
+        const fontSize = localStorage.getItem("fontSize");
+        if (fontSize) document.documentElement.style.fontSize = fontSize;
+        const density = localStorage.getItem("density");
+        if (density) document.body.classList.add(`density-${density}`);
+        const reducedMotion = localStorage.getItem("reducedMotion") === "true";
+        if (reducedMotion) document.documentElement.style.scrollBehavior = "auto";
+        setLoading(false);
+        return;
+      } catch (err) {
+        if (err.status === 401) {
+          localStorage.removeItem("token");
+          if (window.electronAPI?.storeSet) await window.electronAPI.storeSet("token", null);
+          setLoading(false);
+          return;
+        }
+        if (i < 4) await new Promise((r) => setTimeout(r, 2000));
+      }
+    }
+    setLoadError("Could not connect to server. Make sure GameVault is running and try again.");
+  };
+
   useEffect(() => {
     (async () => {
       const store = window.electronAPI?.storeGet;
@@ -42,37 +74,7 @@ function App() {
         document.documentElement.setAttribute("data-bg", bg.startsWith("/uploads") ? "custom" : bg);
         setBgValue(bg);
       }
-
-      let token = localStorage.getItem("token") || (store ? await store("token") : null);
-      if (token) localStorage.setItem("token", token);
-          if (token) {
-        for (let i = 0; i < 60; i++) {
-          try {
-            const u = await auth.me();
-            setUser(u);
-            dailyChallenges.check().catch(() => {});
-            const fontSize = localStorage.getItem("fontSize");
-            if (fontSize) document.documentElement.style.fontSize = fontSize;
-            const density = localStorage.getItem("density");
-            if (density) document.body.classList.add(`density-${density}`);
-            const reducedMotion = localStorage.getItem("reducedMotion") === "true";
-            if (reducedMotion) document.documentElement.style.scrollBehavior = "auto";
-            setLoading(false);
-            return;
-          } catch (err) {
-            if (err.status === 401) {
-              localStorage.removeItem("token");
-              if (window.electronAPI?.storeSet) await window.electronAPI.storeSet("token", null);
-              setLoading(false);
-              return;
-            }
-            await new Promise((r) => setTimeout(r, Math.min(2000 * (i + 1), 15000)));
-          }
-        }
-        setLoading(false);
-      } else {
-        setLoading(false);
-      }
+      tryAuth();
     })();
   }, []);
 
@@ -115,6 +117,15 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="loading-spinner" />
+        {loadError && (
+          <div style={{ textAlign: "center" }}>
+            <p style={{ marginTop: "1rem", color: "var(--danger)", maxWidth: 400 }}>{loadError}</p>
+            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", justifyContent: "center" }}>
+              <button className="btn btn-primary" onClick={() => { setLoadError(null); tryAuth(); }}>Retry</button>
+              <button className="btn btn-secondary" onClick={() => { localStorage.removeItem("token"); setLoadError(null); setLoading(false); }}>Go to Login</button>
+            </div>
+          </div>
+        )}
       </div>
     );
   }
